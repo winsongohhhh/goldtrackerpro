@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { WeightUnit, Currency, GoldTrade } from '@/lib/gold-types';
 import { Plus } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface Props {
   onAdd: (trade: Omit<GoldTrade, 'id'>) => void;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function AddTradeForm({ onAdd, currentPrice }: Props) {
+  const { t } = useI18n();
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState<WeightUnit>('g');
@@ -36,41 +38,41 @@ export function AddTradeForm({ onAdd, currentPrice }: Props) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
       <div className="flex-1 min-w-[120px]">
-        <label className="text-xs text-muted-foreground mb-1 block">买入价 (每盎司)</label>
+        <label className="text-xs text-muted-foreground mb-1 block">{t.buyPrice}</label>
         <Input
           type="number"
           step="0.01"
-          placeholder={currentPrice ? `当前 $${currentPrice.toFixed(2)}` : '价格'}
+          placeholder={currentPrice ? `${t.currentPrice} $${currentPrice.toFixed(2)}` : t.price}
           value={price}
           onChange={e => setPrice(e.target.value)}
           className="bg-secondary border-border font-mono"
         />
       </div>
       <div className="flex-1 min-w-[100px]">
-        <label className="text-xs text-muted-foreground mb-1 block">数量</label>
+        <label className="text-xs text-muted-foreground mb-1 block">{t.quantity}</label>
         <Input
           type="number"
           step="0.01"
-          placeholder="数量"
+          placeholder={t.quantity}
           value={quantity}
           onChange={e => setQuantity(e.target.value)}
           className="bg-secondary border-border font-mono"
         />
       </div>
-      <div className="w-20">
-        <label className="text-xs text-muted-foreground mb-1 block">单位</label>
+      <div className="w-24">
+        <label className="text-xs text-muted-foreground mb-1 block">{t.unit}</label>
         <Select value={unit} onValueChange={v => setUnit(v as WeightUnit)}>
           <SelectTrigger className="bg-secondary border-border">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="g">克 (g)</SelectItem>
-            <SelectItem value="oz">盎司 (oz)</SelectItem>
+            <SelectItem value="g">{t.gram}</SelectItem>
+            <SelectItem value="oz">{t.ounce}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="w-24">
-        <label className="text-xs text-muted-foreground mb-1 block">货币</label>
+        <label className="text-xs text-muted-foreground mb-1 block">{t.currency}</label>
         <Select value={currency} onValueChange={v => setCurrency(v as Currency)}>
           <SelectTrigger className="bg-secondary border-border">
             <SelectValue />
@@ -79,12 +81,13 @@ export function AddTradeForm({ onAdd, currentPrice }: Props) {
             <SelectItem value="USD">USD</SelectItem>
             <SelectItem value="CNY">CNY</SelectItem>
             <SelectItem value="EUR">EUR</SelectItem>
+            <SelectItem value="MYR">MYR</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
         <Plus className="w-4 h-4 mr-1" />
-        添加
+        {t.add}
       </Button>
     </form>
   );

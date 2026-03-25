@@ -1,32 +1,36 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Trash2, TrendingUp, TrendingDown } from 'lucide-react';
-import type { GoldTrade } from '@/lib/gold-types';
-import { convertToGrams, OZ_TO_GRAM, formatCurrency } from '@/lib/gold-types';
+import type { GoldTrade, Currency } from '@/lib/gold-types';
+import { OZ_TO_GRAM, formatCurrency } from '@/lib/gold-types';
+import { useI18n } from '@/lib/i18n';
 
 interface Props {
   trades: GoldTrade[];
-  currentPrice: number; // USD per oz
+  currentPrice: number;
   onDelete: (id: string) => void;
+  convert: (usd: number, to: Currency) => number;
+  displayCurrency: Currency;
 }
 
-export function TradeList({ trades, currentPrice, onDelete }: Props) {
+export function TradeList({ trades, currentPrice, onDelete, convert, displayCurrency }: Props) {
+  const { t } = useI18n();
+
   if (trades.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        暂无交易记录，点击上方添加您的第一笔交易
+        {t.noTrades}
       </div>
     );
   }
 
   const getPnL = (trade: GoldTrade): number => {
-    // Convert trade price to USD per oz for comparison
     const tradePerOz = trade.unit === 'g' ? trade.price * OZ_TO_GRAM : trade.price;
     const quantityInOz = trade.unit === 'g' ? trade.quantity / OZ_TO_GRAM : trade.quantity;
-    // Simple PnL: (current - buy) * quantity
-    // Assuming all trades are in USD for simplicity
     return (currentPrice - tradePerOz) * quantityInOz;
   };
+
+  const dc = displayCurrency;
 
   return (
     <div className="overflow-x-auto">
@@ -34,11 +38,11 @@ export function TradeList({ trades, currentPrice, onDelete }: Props) {
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
             <TableHead className="text-muted-foreground">#</TableHead>
-            <TableHead className="text-muted-foreground">日期</TableHead>
-            <TableHead className="text-muted-foreground">买入价</TableHead>
-            <TableHead className="text-muted-foreground">数量</TableHead>
-            <TableHead className="text-muted-foreground">货币</TableHead>
-            <TableHead className="text-muted-foreground">盈亏</TableHead>
+            <TableHead className="text-muted-foreground">{t.date}</TableHead>
+            <TableHead className="text-muted-foreground">{t.buyPrice}</TableHead>
+            <TableHead className="text-muted-foreground">{t.quantity}</TableHead>
+            <TableHead className="text-muted-foreground">{t.currency}</TableHead>
+            <TableHead className="text-muted-foreground">{t.pnl}</TableHead>
             <TableHead className="text-muted-foreground w-10"></TableHead>
           </TableRow>
         </TableHeader>
@@ -60,7 +64,7 @@ export function TradeList({ trades, currentPrice, onDelete }: Props) {
                 <TableCell>
                   <span className={`inline-flex items-center gap-1 font-mono font-medium ${isProfit ? 'text-success' : 'text-destructive'}`}>
                     {isProfit ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                    {isProfit ? '+' : ''}{formatCurrency(pnl, trade.currency)}
+                    {isProfit ? '+' : ''}{formatCurrency(convert(pnl, dc), dc)}
                   </span>
                 </TableCell>
                 <TableCell>
