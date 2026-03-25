@@ -1,22 +1,30 @@
 import { useMemo } from 'react';
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-import type { GoldPrice } from '@/lib/gold-types';
+import type { GoldPrice, Currency, WeightUnit } from '@/lib/gold-types';
+import { priceForUnit, formatCurrency } from '@/lib/gold-types';
 import { useI18n } from '@/lib/i18n';
 
 interface Props {
   prices: GoldPrice[];
   loading: boolean;
+  convert: (usd: number, to: Currency) => number;
+  displayCurrency: Currency;
+  unit: WeightUnit;
 }
 
-export function GoldPriceChart({ prices, loading }: Props) {
+export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit }: Props) {
   const { t } = useI18n();
 
-  const data = useMemo(() => 
-    prices.map(p => ({
-      time: new Date(p.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-      price: p.price,
-    })),
-    [prices]
+  const data = useMemo(() =>
+    prices.map(p => {
+      const convertedPerGram = convert(p.price, displayCurrency);
+      const displayPrice = priceForUnit(convertedPerGram, unit);
+      return {
+        time: new Date(p.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+        price: Math.round(displayPrice * 100) / 100,
+      };
+    }),
+    [prices, convert, displayCurrency, unit]
   );
 
   const [min, max] = useMemo(() => {
@@ -36,6 +44,8 @@ export function GoldPriceChart({ prices, loading }: Props) {
     );
   }
 
+  const unitLabel = unit === 'oz' ? '/oz' : '/g';
+
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
@@ -46,21 +56,21 @@ export function GoldPriceChart({ prices, loading }: Props) {
               <stop offset="100%" stopColor="hsl(43, 80%, 55%)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <XAxis 
-            dataKey="time" 
-            stroke="hsl(220, 10%, 35%)" 
-            fontSize={11} 
+          <XAxis
+            dataKey="time"
+            stroke="hsl(220, 10%, 35%)"
+            fontSize={11}
             tickLine={false}
             axisLine={false}
             interval="preserveStartEnd"
           />
-          <YAxis 
-            domain={[min, max]} 
-            stroke="hsl(220, 10%, 35%)" 
+          <YAxis
+            domain={[min, max]}
+            stroke="hsl(220, 10%, 35%)"
             fontSize={11}
             tickLine={false}
             axisLine={false}
-            tickFormatter={v => `$${v}`}
+            tickFormatter={v => `${v}`}
             width={70}
           />
           <Tooltip
@@ -72,7 +82,10 @@ export function GoldPriceChart({ prices, loading }: Props) {
               fontFamily: 'var(--font-mono)',
               fontSize: '13px',
             }}
-            formatter={(value: number) => [`$${value.toFixed(2)}/g`, t.goldPrice]}
+            formatter={(value: number) => [
+              `${formatCurrency(value, displayCurrency)}${unitLabel}`,
+              t.goldPrice,
+            ]}
           />
           <Area
             type="monotone"

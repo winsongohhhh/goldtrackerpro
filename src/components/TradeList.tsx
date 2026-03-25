@@ -1,8 +1,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Trash2, TrendingUp, TrendingDown } from 'lucide-react';
-import type { GoldTrade, Currency } from '@/lib/gold-types';
-import { formatCurrency } from '@/lib/gold-types';
+import type { GoldTrade, Currency, WeightUnit } from '@/lib/gold-types';
+import { formatCurrency, priceForUnit, quantityForUnit } from '@/lib/gold-types';
 import { useI18n } from '@/lib/i18n';
 
 interface Props {
@@ -11,10 +11,12 @@ interface Props {
   onDelete: (id: string) => void;
   convert: (usd: number, to: Currency) => number;
   displayCurrency: Currency;
+  unit: WeightUnit;
 }
 
-export function TradeList({ trades, currentPrice, onDelete, convert, displayCurrency }: Props) {
+export function TradeList({ trades, currentPrice, onDelete, convert, displayCurrency, unit }: Props) {
   const { t } = useI18n();
+  const unitLabel = unit === 'oz' ? 'oz' : 'g';
 
   if (trades.length === 0) {
     return (
@@ -24,17 +26,25 @@ export function TradeList({ trades, currentPrice, onDelete, convert, displayCurr
     );
   }
 
-  // currentPrice is USD/g. Trade price is in trade.currency/g.
-  // PnL = (currentPriceInTradeCurrency - trade.price) * trade.quantity, then convert to display currency
   const getPnL = (trade: GoldTrade): number => {
-    // Convert current USD/g price to trade currency for comparison
-    const currentInTradeCurrency = convert(currentPrice, trade.currency);
-    const pnlInTradeCurrency = (currentInTradeCurrency - trade.price) * trade.quantity;
-    // Convert PnL back to USD, then to display currency
-    // pnlInTradeCurrency / rate(tradeCurrency) = pnlInUSD
-    const rateToTrade = convert(1, trade.currency); // 1 USD = X tradeCurrency
-    const pnlUSD = rateToTrade > 0 ? pnlInTradeCurrency / rateToTrade : 0;
-    return convert(pnlUSD, displayCurrency);
+    // Current price in display currency per gram
+    const currentInDisplay = convert(currentPrice, displayCurrency);
+    // Trade price: stored as per-gram in trade.currency. Convert to display currency.
+    const rateToTrade = convert(1, trade.currency);
+    const tradePriceUSD = rateToTrade > 0 ? trade.price / rateToTrade : 0;
+    const tradePriceInDisplay = convert(tradePriceUSD, displayCurrency);
+    // PnL per gram * quantity (in grams), then scale to unit for display
+    const pnlPerGram = currentInDisplay - tradePriceInDisplay;
+    return pnlPerGram * trade.quantity;
+  };
+
+  const getDisplayPrice = (trade: GoldTrade): string => {
+    // Convert trade price (per gram in trade currency) to display currency per unit
+    const rateToTrade = convert(1, trade.currency);
+    const tradePriceUSD = rateToTrade > 0 ? trade.price / rateToTrade : 0;
+    const inDisplay = convert(tradePriceUSD, displayCurrency);
+    const perUnit = priceForUnit(inDisplay, unit);
+    return `${formatCurrency(perUnit, displayCurrency)}/${unitLabel}`;
   };
 
   return (
@@ -54,15 +64,16 @@ export function TradeList({ trades, currentPrice, onDelete, convert, displayCurr
           {trades.map((trade, i) => {
             const pnl = getPnL(trade);
             const isProfit = pnl >= 0;
+            const displayQty = quantityForUnit(trade.quantity, unit);
             return (
               <TableRow key={trade.id} className="border-border">
                 <TableCell className="font-mono text-muted-foreground">{i + 1}</TableCell>
                 <TableCell className="font-mono">{trade.date}</TableCell>
                 <TableCell className="font-mono">
-                  {formatCurrency(trade.price, trade.currency)}/g
+                  {getDisplayPrice(trade)}
                 </TableCell>
                 <TableCell className="font-mono">
-                  {trade.quantity}g
+                  {displayQty.toFixed(2)}{unitLabel}
                 </TableCell>
                 <TableCell>
                   <span className={`inline-flex items-center gap-1 font-mono font-medium ${isProfit ? 'text-success' : 'text-destructive'}`}>

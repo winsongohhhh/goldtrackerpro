@@ -10,8 +10,8 @@ import { useI18n } from '@/lib/i18n';
 import { RefreshCw, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Currency } from '@/lib/gold-types';
-import { formatCurrency } from '@/lib/gold-types';
+import type { Currency, WeightUnit } from '@/lib/gold-types';
+import { formatCurrency, priceForUnit } from '@/lib/gold-types';
 
 const Index = () => {
   const { prices, currentPrice, loading, lastUpdated, refetch } = useGoldPrice();
@@ -19,14 +19,16 @@ const Index = () => {
   const { convert } = useExchangeRates();
   const { t, lang, setLang } = useI18n();
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
+  const [unit, setUnit] = useState<WeightUnit>('g');
 
-  const displayPrice = convert(currentPrice, displayCurrency);
+  const displayPrice = priceForUnit(convert(currentPrice, displayCurrency), unit);
+  const unitLabel = unit === 'oz' ? '/oz' : '/g';
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
               {t.appTitle}
@@ -35,7 +37,7 @@ const Index = () => {
               {t.appSubtitle}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="ghost"
               size="sm"
@@ -46,6 +48,18 @@ const Index = () => {
               {lang === 'cn' ? 'EN' : '中文'}
             </Button>
 
+            {/* Unit toggle */}
+            <Select value={unit} onValueChange={v => setUnit(v as WeightUnit)}>
+              <SelectTrigger className="w-16 bg-secondary border-border text-xs h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="g">g</SelectItem>
+                <SelectItem value="oz">oz</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Currency selector */}
             <Select value={displayCurrency} onValueChange={v => setDisplayCurrency(v as Currency)}>
               <SelectTrigger className="w-20 bg-secondary border-border text-xs h-8">
                 <SelectValue />
@@ -63,7 +77,7 @@ const Index = () => {
                 <div className="font-mono text-lg font-bold text-primary">
                   {formatCurrency(displayPrice, displayCurrency)}
                 </div>
-                <div className="text-[10px] text-muted-foreground">{displayCurrency}/g</div>
+                <div className="text-[10px] text-muted-foreground">{displayCurrency}{unitLabel}</div>
               </div>
             )}
             <Button
@@ -87,7 +101,13 @@ const Index = () => {
               {t.updated}: {lastUpdated.toLocaleTimeString('zh-CN')}
             </span>
           </div>
-          <GoldPriceChart prices={prices} loading={loading} />
+          <GoldPriceChart
+            prices={prices}
+            loading={loading}
+            convert={convert}
+            displayCurrency={displayCurrency}
+            unit={unit}
+          />
         </section>
 
         {/* Summary */}
@@ -96,6 +116,7 @@ const Index = () => {
           currentPrice={currentPrice}
           convert={convert}
           displayCurrency={displayCurrency}
+          unit={unit}
         />
 
         {/* Add Trade */}
@@ -103,7 +124,13 @@ const Index = () => {
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             {t.addTrade}
           </h2>
-          <AddTradeForm onAdd={addTrade} currentPrice={currentPrice} />
+          <AddTradeForm
+            onAdd={addTrade}
+            currentPrice={currentPrice}
+            convert={convert}
+            displayCurrency={displayCurrency}
+            unit={unit}
+          />
         </section>
 
         {/* Trade List */}
@@ -117,6 +144,7 @@ const Index = () => {
             onDelete={deleteTrade}
             convert={convert}
             displayCurrency={displayCurrency}
+            unit={unit}
           />
         </section>
       </div>
