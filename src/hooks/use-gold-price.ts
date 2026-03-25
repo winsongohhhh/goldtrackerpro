@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { GoldPrice } from '@/lib/gold-types';
 
-// TradingView unofficial widget data endpoint for real-time price
-const TV_SYMBOL = 'TVC:GOLD';
+const OZ_TO_GRAM = 31.1035;
 
 function generateSimulatedPrices(basePrice: number): GoldPrice[] {
   const now = Date.now();
   const points: GoldPrice[] = [];
   for (let i = 47; i >= 0; i--) {
     const timestamp = now - i * 30 * 60 * 1000;
-    const noise = (Math.sin(i * 0.5) * 15) + (Math.random() - 0.5) * 10;
+    const noise = (Math.sin(i * 0.5) * 0.5) + (Math.random() - 0.5) * 0.3;
     points.push({
       timestamp,
       price: Math.round((basePrice + noise) * 100) / 100,
@@ -18,38 +17,19 @@ function generateSimulatedPrices(basePrice: number): GoldPrice[] {
   return points;
 }
 
-async function fetchTradingViewPrice(): Promise<number | null> {
+async function fetchGoldPrice(): Promise<number | null> {
   try {
-    // Use TradingView's public scanning API to get real-time GOLD price
-    const res = await fetch('https://scanner.tradingview.com/commodity/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        symbols: { tickers: [TV_SYMBOL], query: { types: [] } },
-        columns: ['close', 'change', 'high', 'low'],
-      }),
-    });
+    const res = await fetch('https://api.gold-api.com/price/XAU');
     if (res.ok) {
       const data = await res.json();
-      const price = data?.data?.[0]?.d?.[0];
-      if (typeof price === 'number' && price > 0) return price;
+      // price is per oz, convert to per gram
+      if (typeof data?.price === 'number' && data.price > 0) {
+        return Math.round((data.price / OZ_TO_GRAM) * 100) / 100;
+      }
     }
   } catch {
     // fallback
   }
-
-  // Fallback: goldprice.org
-  try {
-    const res = await fetch('https://data-asg.goldprice.org/dbXRates/USD');
-    if (res.ok) {
-      const data = await res.json();
-      const price = data?.items?.[0]?.xauPrice;
-      if (price && price > 0) return price;
-    }
-  } catch {
-    // fallback
-  }
-
   return null;
 }
 
@@ -61,7 +41,7 @@ export function useGoldPrice() {
   const initializedRef = useRef(false);
 
   const fetchPrice = useCallback(async () => {
-    const price = await fetchTradingViewPrice();
+    const price = await fetchGoldPrice();
 
     if (price) {
       setCurrentPrice(price);
@@ -71,7 +51,6 @@ export function useGoldPrice() {
           return generateSimulatedPrices(price);
         }
         const newPoint: GoldPrice = { timestamp: Date.now(), price };
-        // Keep last point per minute for chart (avoid too many points)
         const updated = [...prev, newPoint];
         return updated.slice(-120);
       });
@@ -83,14 +62,14 @@ export function useGoldPrice() {
     // Full fallback with simulated data
     if (!initializedRef.current) {
       initializedRef.current = true;
-      const basePrice = 3020;
+      const basePrice = 97; // ~$3020/oz in $/g
       const simulated = generateSimulatedPrices(basePrice);
       setPrices(simulated);
       setCurrentPrice(simulated[simulated.length - 1].price);
     } else {
       setPrices(prev => {
-        const lastPrice = prev[prev.length - 1]?.price ?? 3020;
-        const newPrice = lastPrice + (Math.random() - 0.5) * 3;
+        const lastPrice = prev[prev.length - 1]?.price ?? 97;
+        const newPrice = lastPrice + (Math.random() - 0.5) * 0.1;
         const point: GoldPrice = { timestamp: Date.now(), price: Math.round(newPrice * 100) / 100 };
         setCurrentPrice(point.price);
         return [...prev, point].slice(-120);
@@ -102,8 +81,7 @@ export function useGoldPrice() {
 
   useEffect(() => {
     fetchPrice();
-    // Refresh every 1 second for real-time feel
-    const interval = setInterval(fetchPrice, 1000);
+    const interval = setInterval(fetchPrice, 10000); // every 10 seconds
     return () => clearInterval(interval);
   }, [fetchPrice]);
 

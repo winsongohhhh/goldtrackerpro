@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { WeightUnit, Currency, GoldTrade } from '@/lib/gold-types';
+import type { Currency, GoldTrade } from '@/lib/gold-types';
 import { Plus } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
@@ -15,7 +15,6 @@ export function AddTradeForm({ onAdd, currentPrice }: Props) {
   const { t } = useI18n();
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState<WeightUnit>('g');
   const [currency, setCurrency] = useState<Currency>('USD');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -28,7 +27,6 @@ export function AddTradeForm({ onAdd, currentPrice }: Props) {
       date: new Date().toISOString().split('T')[0],
       price: p,
       quantity: q,
-      unit,
       currency,
     });
     setPrice('');
@@ -42,7 +40,7 @@ export function AddTradeForm({ onAdd, currentPrice }: Props) {
         <Input
           type="number"
           step="0.01"
-          placeholder={currentPrice ? `${t.currentPrice} $${currentPrice.toFixed(2)}` : t.price}
+          placeholder={currentPrice ? `${t.currentPrice} $${currentPrice.toFixed(2)}/g` : t.price}
           value={price}
           onChange={e => setPrice(e.target.value)}
           className="bg-secondary border-border font-mono"
@@ -53,23 +51,11 @@ export function AddTradeForm({ onAdd, currentPrice }: Props) {
         <Input
           type="number"
           step="0.01"
-          placeholder={t.quantity}
+          placeholder="g"
           value={quantity}
           onChange={e => setQuantity(e.target.value)}
           className="bg-secondary border-border font-mono"
         />
-      </div>
-      <div className="w-24">
-        <label className="text-xs text-muted-foreground mb-1 block">{t.unit}</label>
-        <Select value={unit} onValueChange={v => setUnit(v as WeightUnit)}>
-          <SelectTrigger className="bg-secondary border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="g">{t.gram}</SelectItem>
-            <SelectItem value="oz">{t.ounce}</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
       <div className="w-24">
         <label className="text-xs text-muted-foreground mb-1 block">{t.currency}</label>
