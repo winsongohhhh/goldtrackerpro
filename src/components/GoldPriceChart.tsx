@@ -24,8 +24,8 @@ export function GoldPriceChart({ prices, loading }: Props) {
     const vals = data.map(d => d.price);
     const lo = Math.min(...vals);
     const hi = Math.max(...vals);
-    const pad = (hi - lo) * 0.1 || 10;
-    return [Math.floor(lo - pad), Math.ceil(hi + pad)];
+    const pad = (hi - lo) * 0.1 || 1;
+    return [Math.floor((lo - pad) * 100) / 100, Math.ceil((hi + pad) * 100) / 100];
   }, [data]);
 
   if (loading) {
@@ -72,7 +72,7 @@ export function GoldPriceChart({ prices, loading }: Props) {
               fontFamily: 'var(--font-mono)',
               fontSize: '13px',
             }}
-            formatter={(value: number) => [`$${value.toFixed(2)}`, t.goldPrice]}
+            formatter={(value: number) => [`$${value.toFixed(2)}/g`, t.goldPrice]}
           />
           <Area
             type="monotone"

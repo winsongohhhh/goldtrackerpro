@@ -63,7 +63,7 @@ const Index = () => {
                 <div className="font-mono text-lg font-bold text-primary">
                   {formatCurrency(displayPrice, displayCurrency)}
                 </div>
-                <div className="text-[10px] text-muted-foreground">{displayCurrency}/oz</div>
+                <div className="text-[10px] text-muted-foreground">{displayCurrency}/g</div>
               </div>
             )}
             <Button

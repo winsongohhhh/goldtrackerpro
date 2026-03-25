@@ -1,10 +1,10 @@
 import type { GoldTrade, Currency } from '@/lib/gold-types';
-import { convertToGrams, OZ_TO_GRAM, formatCurrency } from '@/lib/gold-types';
+import { formatCurrency } from '@/lib/gold-types';
 import { useI18n } from '@/lib/i18n';
 
 interface Props {
   trades: GoldTrade[];
-  currentPrice: number; // USD per oz
+  currentPrice: number; // USD per gram
   convert: (usd: number, to: Currency) => number;
   displayCurrency: Currency;
 }
@@ -13,30 +13,30 @@ export function TradeSummary({ trades, currentPrice, convert, displayCurrency }:
   const { t } = useI18n();
   if (trades.length === 0) return null;
 
-  const totalGrams = trades.reduce((sum, t) => sum + convertToGrams(t.quantity, t.unit), 0);
-  const totalOz = totalGrams / OZ_TO_GRAM;
+  const totalGrams = trades.reduce((sum, t) => sum + t.quantity, 0);
 
-  const totalCost = trades.reduce((sum, t) => {
-    const pricePerOz = t.unit === 'g' ? t.price * OZ_TO_GRAM : t.price;
-    const qtyOz = t.unit === 'g' ? t.quantity / OZ_TO_GRAM : t.quantity;
-    return sum + pricePerOz * qtyOz;
+  // Total cost in USD: convert each trade's cost from its currency to USD
+  const totalCostUSD = trades.reduce((sum, trade) => {
+    const costInTradeCurrency = trade.price * trade.quantity;
+    const rate = convert(1, trade.currency); // 1 USD = X tradeCurrency
+    return sum + (rate > 0 ? costInTradeCurrency / rate : 0);
   }, 0);
 
-  const avgCostPerOz = totalCost / totalOz;
-  const currentValue = currentPrice * totalOz;
-  const totalPnL = currentValue - totalCost;
-  const pnlPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
-  const isProfit = totalPnL >= 0;
+  const avgCostPerGramUSD = totalCostUSD / totalGrams;
+  const currentValueUSD = currentPrice * totalGrams;
+  const totalPnLUSD = currentValueUSD - totalCostUSD;
+  const pnlPercent = totalCostUSD > 0 ? (totalPnLUSD / totalCostUSD) * 100 : 0;
+  const isProfit = totalPnLUSD >= 0;
 
   const dc = displayCurrency;
 
   const stats = [
-    { label: t.totalHolding, value: `${totalGrams.toFixed(2)}g / ${totalOz.toFixed(4)}oz` },
-    { label: t.avgCost, value: `${formatCurrency(convert(avgCostPerOz, dc), dc)}/oz` },
-    { label: t.marketValue, value: formatCurrency(convert(currentValue, dc), dc) },
+    { label: t.totalHolding, value: `${totalGrams.toFixed(2)}g` },
+    { label: t.avgCost, value: `${formatCurrency(convert(avgCostPerGramUSD, dc), dc)}/g` },
+    { label: t.marketValue, value: formatCurrency(convert(currentValueUSD, dc), dc) },
     {
       label: t.totalPnL,
-      value: `${isProfit ? '+' : ''}${formatCurrency(convert(totalPnL, dc), dc)} (${isProfit ? '+' : ''}${pnlPercent.toFixed(2)}%)`,
+      value: `${isProfit ? '+' : ''}${formatCurrency(convert(totalPnLUSD, dc), dc)} (${isProfit ? '+' : ''}${pnlPercent.toFixed(2)}%)`,
       color: isProfit ? 'text-success' : 'text-destructive',
     },
   ];
