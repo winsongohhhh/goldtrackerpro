@@ -1,18 +1,21 @@
-import type { GoldTrade } from '@/lib/gold-types';
+import type { GoldTrade, Currency } from '@/lib/gold-types';
 import { convertToGrams, OZ_TO_GRAM, formatCurrency } from '@/lib/gold-types';
+import { useI18n } from '@/lib/i18n';
 
 interface Props {
   trades: GoldTrade[];
   currentPrice: number; // USD per oz
+  convert: (usd: number, to: Currency) => number;
+  displayCurrency: Currency;
 }
 
-export function TradeSummary({ trades, currentPrice }: Props) {
+export function TradeSummary({ trades, currentPrice, convert, displayCurrency }: Props) {
+  const { t } = useI18n();
   if (trades.length === 0) return null;
 
   const totalGrams = trades.reduce((sum, t) => sum + convertToGrams(t.quantity, t.unit), 0);
   const totalOz = totalGrams / OZ_TO_GRAM;
 
-  // Total cost in USD (simplified: assume all USD)
   const totalCost = trades.reduce((sum, t) => {
     const pricePerOz = t.unit === 'g' ? t.price * OZ_TO_GRAM : t.price;
     const qtyOz = t.unit === 'g' ? t.quantity / OZ_TO_GRAM : t.quantity;
@@ -25,13 +28,15 @@ export function TradeSummary({ trades, currentPrice }: Props) {
   const pnlPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
   const isProfit = totalPnL >= 0;
 
+  const dc = displayCurrency;
+
   const stats = [
-    { label: '总持仓', value: `${totalGrams.toFixed(2)}g / ${totalOz.toFixed(4)}oz` },
-    { label: '平均成本', value: `${formatCurrency(avgCostPerOz, 'USD')}/oz` },
-    { label: '当前市值', value: formatCurrency(currentValue, 'USD') },
+    { label: t.totalHolding, value: `${totalGrams.toFixed(2)}g / ${totalOz.toFixed(4)}oz` },
+    { label: t.avgCost, value: `${formatCurrency(convert(avgCostPerOz, dc), dc)}/oz` },
+    { label: t.marketValue, value: formatCurrency(convert(currentValue, dc), dc) },
     {
-      label: '总盈亏',
-      value: `${isProfit ? '+' : ''}${formatCurrency(totalPnL, 'USD')} (${isProfit ? '+' : ''}${pnlPercent.toFixed(2)}%)`,
+      label: t.totalPnL,
+      value: `${isProfit ? '+' : ''}${formatCurrency(convert(totalPnL, dc), dc)} (${isProfit ? '+' : ''}${pnlPercent.toFixed(2)}%)`,
       color: isProfit ? 'text-success' : 'text-destructive',
     },
   ];
