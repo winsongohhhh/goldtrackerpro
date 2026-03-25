@@ -1,5 +1,5 @@
-import type { GoldTrade, Currency } from '@/lib/gold-types';
-import { formatCurrency } from '@/lib/gold-types';
+import type { GoldTrade, Currency, WeightUnit } from '@/lib/gold-types';
+import { formatCurrency, priceForUnit, quantityForUnit } from '@/lib/gold-types';
 import { useI18n } from '@/lib/i18n';
 
 interface Props {
@@ -7,18 +7,21 @@ interface Props {
   currentPrice: number; // USD per gram
   convert: (usd: number, to: Currency) => number;
   displayCurrency: Currency;
+  unit: WeightUnit;
 }
 
-export function TradeSummary({ trades, currentPrice, convert, displayCurrency }: Props) {
+export function TradeSummary({ trades, currentPrice, convert, displayCurrency, unit }: Props) {
   const { t } = useI18n();
   if (trades.length === 0) return null;
 
+  const unitLabel = unit === 'oz' ? 'oz' : 'g';
   const totalGrams = trades.reduce((sum, t) => sum + t.quantity, 0);
+  const displayQty = quantityForUnit(totalGrams, unit);
 
-  // Total cost in USD: convert each trade's cost from its currency to USD
+  // Total cost in USD
   const totalCostUSD = trades.reduce((sum, trade) => {
     const costInTradeCurrency = trade.price * trade.quantity;
-    const rate = convert(1, trade.currency); // 1 USD = X tradeCurrency
+    const rate = convert(1, trade.currency);
     return sum + (rate > 0 ? costInTradeCurrency / rate : 0);
   }, 0);
 
@@ -31,8 +34,8 @@ export function TradeSummary({ trades, currentPrice, convert, displayCurrency }:
   const dc = displayCurrency;
 
   const stats = [
-    { label: t.totalHolding, value: `${totalGrams.toFixed(2)}g` },
-    { label: t.avgCost, value: `${formatCurrency(convert(avgCostPerGramUSD, dc), dc)}/g` },
+    { label: t.totalHolding, value: `${displayQty.toFixed(2)}${unitLabel}` },
+    { label: t.avgCost, value: `${formatCurrency(priceForUnit(convert(avgCostPerGramUSD, dc), unit), dc)}/${unitLabel}` },
     { label: t.marketValue, value: formatCurrency(convert(currentValueUSD, dc), dc) },
     {
       label: t.totalPnL,
