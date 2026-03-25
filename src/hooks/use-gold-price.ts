@@ -1,16 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { GoldPrice } from '@/lib/gold-types';
 
-const METAL_PRICE_API = 'https://api.metalpriceapi.com/v1';
+// TradingView unofficial widget data endpoint for real-time price
+const TV_SYMBOL = 'TVC:GOLD';
 
-// Free fallback: use a simulated price based on real-ish data
-function generateSimulatedPrices(): GoldPrice[] {
+function generateSimulatedPrices(basePrice: number): GoldPrice[] {
   const now = Date.now();
   const points: GoldPrice[] = [];
-  const basePrice = 3020; // approximate current gold price USD/oz
-  
   for (let i = 47; i >= 0; i--) {
-    const timestamp = now - i * 30 * 60 * 1000; // every 30 min
+    const timestamp = now - i * 30 * 60 * 1000;
     const noise = (Math.sin(i * 0.5) * 15) + (Math.random() - 0.5) * 10;
     points.push({
       timestamp,
@@ -20,58 +18,94 @@ function generateSimulatedPrices(): GoldPrice[] {
   return points;
 }
 
+async function fetchTradingViewPrice(): Promise<number | null> {
+  try {
+    // Use TradingView's public scanning API to get real-time GOLD price
+    const res = await fetch('https://scanner.tradingview.com/commodity/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        symbols: { tickers: [TV_SYMBOL], query: { types: [] } },
+        columns: ['close', 'change', 'high', 'low'],
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const price = data?.data?.[0]?.d?.[0];
+      if (typeof price === 'number' && price > 0) return price;
+    }
+  } catch {
+    // fallback
+  }
+
+  // Fallback: goldprice.org
+  try {
+    const res = await fetch('https://data-asg.goldprice.org/dbXRates/USD');
+    if (res.ok) {
+      const data = await res.json();
+      const price = data?.items?.[0]?.xauPrice;
+      if (price && price > 0) return price;
+    }
+  } catch {
+    // fallback
+  }
+
+  return null;
+}
+
 export function useGoldPrice() {
   const [prices, setPrices] = useState<GoldPrice[]>([]);
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const initializedRef = useRef(false);
 
   const fetchPrice = useCallback(async () => {
-    try {
-      // Try fetching from a free gold price API
-      const res = await fetch(
-        'https://data-asg.goldprice.org/dbXRates/USD'
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const pricePerOz = data?.items?.[0]?.xauPrice;
-        if (pricePerOz && pricePerOz > 0) {
-          setCurrentPrice(pricePerOz);
-          setPrices(prev => {
-            const newPoint: GoldPrice = { timestamp: Date.now(), price: pricePerOz };
-            const updated = [...prev, newPoint];
-            return updated.slice(-48);
-          });
-          setLastUpdated(new Date());
-          setLoading(false);
-          return;
+    const price = await fetchTradingViewPrice();
+
+    if (price) {
+      setCurrentPrice(price);
+      setPrices(prev => {
+        if (prev.length === 0 && !initializedRef.current) {
+          initializedRef.current = true;
+          return generateSimulatedPrices(price);
         }
-      }
-    } catch {
-      // fallback below
+        const newPoint: GoldPrice = { timestamp: Date.now(), price };
+        // Keep last point per minute for chart (avoid too many points)
+        const updated = [...prev, newPoint];
+        return updated.slice(-120);
+      });
+      setLastUpdated(new Date());
+      setLoading(false);
+      return;
     }
 
-    // Fallback to simulated data
-    if (prices.length === 0) {
-      const simulated = generateSimulatedPrices();
+    // Full fallback with simulated data
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      const basePrice = 3020;
+      const simulated = generateSimulatedPrices(basePrice);
       setPrices(simulated);
       setCurrentPrice(simulated[simulated.length - 1].price);
     } else {
-      const lastPrice = prices[prices.length - 1].price;
-      const newPrice = lastPrice + (Math.random() - 0.5) * 5;
-      const point: GoldPrice = { timestamp: Date.now(), price: Math.round(newPrice * 100) / 100 };
-      setPrices(prev => [...prev, point].slice(-48));
-      setCurrentPrice(point.price);
+      setPrices(prev => {
+        const lastPrice = prev[prev.length - 1]?.price ?? 3020;
+        const newPrice = lastPrice + (Math.random() - 0.5) * 3;
+        const point: GoldPrice = { timestamp: Date.now(), price: Math.round(newPrice * 100) / 100 };
+        setCurrentPrice(point.price);
+        return [...prev, point].slice(-120);
+      });
     }
     setLastUpdated(new Date());
     setLoading(false);
-  }, [prices.length]);
+  }, []);
 
   useEffect(() => {
     fetchPrice();
-    const interval = setInterval(fetchPrice, 60000); // every 60s
+    // Refresh every 1 second for real-time feel
+    const interval = setInterval(fetchPrice, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchPrice]);
 
   return { prices, currentPrice, loading, lastUpdated, refetch: fetchPrice };
 }

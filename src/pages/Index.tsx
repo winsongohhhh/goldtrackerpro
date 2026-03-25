@@ -14,7 +14,7 @@ import type { Currency } from '@/lib/gold-types';
 import { formatCurrency } from '@/lib/gold-types';
 
 const Index = () => {
-  const { currentPrice, loading, refetch } = useGoldPrice();
+  const { prices, currentPrice, loading, lastUpdated, refetch } = useGoldPrice();
   const { trades, addTrade, deleteTrade } = useTrades();
   const { convert } = useExchangeRates();
   const { t, lang, setLang } = useI18n();
@@ -36,7 +36,6 @@ const Index = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Language toggle */}
             <Button
               variant="ghost"
               size="sm"
@@ -47,7 +46,6 @@ const Index = () => {
               {lang === 'cn' ? 'EN' : '中文'}
             </Button>
 
-            {/* Display currency */}
             <Select value={displayCurrency} onValueChange={v => setDisplayCurrency(v as Currency)}>
               <SelectTrigger className="w-20 bg-secondary border-border text-xs h-8">
                 <SelectValue />
@@ -79,8 +77,18 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Price Chart - TradingView */}
-        <GoldPriceChart />
+        {/* Price Chart */}
+        <section className="bg-card rounded-xl border border-border p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              {t.priceChart}
+            </h2>
+            <span className="text-[10px] text-muted-foreground font-mono">
+              {t.updated}: {lastUpdated.toLocaleTimeString('zh-CN')}
+            </span>
+          </div>
+          <GoldPriceChart prices={prices} loading={loading} />
+        </section>
 
         {/* Summary */}
         <TradeSummary
