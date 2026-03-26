@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
-import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { useEffect, useRef, useMemo } from 'react';
+import { createChart, ColorType, CrosshairMode, type IChartApi, type ISeriesApi } from 'lightweight-charts';
 import type { GoldPrice, Currency, WeightUnit } from '@/lib/gold-types';
+import type { TimeRange } from '@/hooks/use-gold-price';
 import { priceForUnit, formatCurrency } from '@/lib/gold-types';
 import { useI18n } from '@/lib/i18n';
 
@@ -10,94 +11,139 @@ interface Props {
   convert: (usd: number, to: Currency) => number;
   displayCurrency: Currency;
   unit: WeightUnit;
+  timeRange: TimeRange;
+  onTimeRangeChange: (range: TimeRange) => void;
 }
 
-export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit }: Props) {
+const TIME_RANGES: TimeRange[] = ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y', '10Y', 'ALL'];
+
+export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit, timeRange, onTimeRangeChange }: Props) {
   const { t } = useI18n();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Area'> | null>(null);
 
   const data = useMemo(() =>
     prices.map(p => {
       const convertedPerGram = convert(p.price, displayCurrency);
       const displayPrice = priceForUnit(convertedPerGram, unit);
       return {
-        time: new Date(p.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-        price: Math.round(displayPrice * 100) / 100,
+        time: (Math.floor(p.timestamp / 1000)) as any,
+        value: Math.round(displayPrice * 100) / 100,
       };
-    }),
+    }).sort((a, b) => a.time - b.time),
     [prices, convert, displayCurrency, unit]
   );
 
-  const [min, max] = useMemo(() => {
-    if (data.length === 0) return [0, 0];
-    const vals = data.map(d => d.price);
-    const lo = Math.min(...vals);
-    const hi = Math.max(...vals);
-    const pad = (hi - lo) * 0.1 || 1;
-    return [Math.floor((lo - pad) * 100) / 100, Math.ceil((hi + pad) * 100) / 100];
-  }, [data]);
+  // Create chart
+  useEffect(() => {
+    if (!containerRef.current) return;
 
-  if (loading) {
-    return (
-      <div className="h-64 flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">{t.loading}</div>
-      </div>
-    );
-  }
+    const chart = createChart(containerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: 'transparent' },
+        textColor: 'hsl(220, 10%, 50%)',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+        fontSize: 11,
+      },
+      grid: {
+        vertLines: { color: 'hsla(220, 15%, 18%, 0.5)' },
+        horzLines: { color: 'hsla(220, 15%, 18%, 0.5)' },
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: { color: 'hsla(43, 80%, 55%, 0.3)', width: 1, style: 2 },
+        horzLine: { color: 'hsla(43, 80%, 55%, 0.3)', width: 1, style: 2 },
+      },
+      rightPriceScale: {
+        borderColor: 'hsla(220, 15%, 18%, 0.5)',
+        scaleMargins: { top: 0.1, bottom: 0.1 },
+      },
+      timeScale: {
+        borderColor: 'hsla(220, 15%, 18%, 0.5)',
+        timeVisible: timeRange === '1D' || timeRange === '1W',
+        secondsVisible: false,
+      },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true },
+      handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+    });
 
-  const unitLabel = unit === 'oz' ? '/oz' : '/g';
+    const series = chart.addAreaSeries({
+      lineColor: 'hsl(43, 80%, 55%)',
+      topColor: 'hsla(43, 80%, 55%, 0.3)',
+      bottomColor: 'hsla(43, 80%, 55%, 0.02)',
+      lineWidth: 2,
+      crosshairMarkerBackgroundColor: 'hsl(43, 80%, 55%)',
+      crosshairMarkerBorderColor: 'hsl(220, 20%, 7%)',
+      crosshairMarkerRadius: 4,
+      priceFormat: {
+        type: 'custom',
+        formatter: (price: any) => formatCurrency(price, displayCurrency),
+      },
+    });
+
+    chartRef.current = chart;
+    seriesRef.current = series;
+
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        chart.applyOptions({ width, height });
+      }
+    });
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      chart.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
+    };
+  }, [timeRange]);
+
+  // Update data
+  useEffect(() => {
+    if (seriesRef.current && data.length > 0) {
+      seriesRef.current.setData(data);
+      // Update price format when currency changes
+      seriesRef.current.applyOptions({
+        priceFormat: {
+          type: 'custom',
+          formatter: (price: any) => formatCurrency(price, displayCurrency),
+        },
+      });
+      chartRef.current?.timeScale().fitContent();
+    }
+  }, [data, displayCurrency]);
 
   return (
-    <div className="h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="hsl(43, 80%, 55%)" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="hsl(43, 80%, 55%)" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <XAxis
-            dataKey="time"
-            stroke="hsl(220, 10%, 35%)"
-            fontSize={11}
-            tickLine={false}
-            axisLine={false}
-            interval="preserveStartEnd"
-          />
-          <YAxis
-            domain={[min, max]}
-            stroke="hsl(220, 10%, 35%)"
-            fontSize={11}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={v => `${v}`}
-            width={70}
-          />
-          <Tooltip
-            contentStyle={{
-              background: 'hsl(220, 18%, 12%)',
-              border: '1px solid hsl(220, 15%, 22%)',
-              borderRadius: '8px',
-              color: 'hsl(40, 20%, 90%)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '13px',
-            }}
-            formatter={(value: number) => [
-              `${formatCurrency(value, displayCurrency)}${unitLabel}`,
-              t.goldPrice,
-            ]}
-          />
-          <Area
-            type="monotone"
-            dataKey="price"
-            stroke="hsl(43, 80%, 55%)"
-            strokeWidth={2}
-            fill="url(#goldGradient)"
-            dot={false}
-            activeDot={{ r: 4, fill: 'hsl(43, 80%, 55%)', stroke: 'hsl(220, 20%, 7%)' }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div className="space-y-3">
+      {/* Time range selector */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-1">
+        {TIME_RANGES.map(r => (
+          <button
+            key={r}
+            onClick={() => onTimeRangeChange(r)}
+            className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap
+              ${r === timeRange
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-card/80 backdrop-blur-sm rounded-lg">
+            <div className="text-muted-foreground text-sm">{t.loading}</div>
+          </div>
+        )}
+        <div ref={containerRef} className="h-[400px] w-full" />
+      </div>
     </div>
   );
 }

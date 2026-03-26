@@ -5,25 +5,25 @@
 @layer base {
   :root {
     --background: 220 20% 7%;
-    --foreground: 40 20% 90%;
+    --foreground: 0 0% 95%;
 
     --card: 220 18% 10%;
-    --card-foreground: 40 20% 90%;
+    --card-foreground: 0 0% 95%;
 
     --popover: 220 18% 12%;
-    --popover-foreground: 40 20% 90%;
+    --popover-foreground: 0 0% 95%;
 
     --primary: 43 80% 55%;
     --primary-foreground: 220 20% 7%;
 
     --secondary: 220 15% 15%;
-    --secondary-foreground: 40 15% 75%;
+    --secondary-foreground: 0 0% 70%;
 
     --muted: 220 15% 13%;
     --muted-foreground: 220 10% 50%;
 
     --accent: 43 60% 40%;
-    --accent-foreground: 40 20% 95%;
+    --accent-foreground: 0 0% 95%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
@@ -42,16 +42,16 @@
     --chart-fill: 43 80% 55%;
 
     --sidebar-background: 220 18% 10%;
-    --sidebar-foreground: 40 20% 90%;
+    --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 43 80% 55%;
     --sidebar-primary-foreground: 220 20% 7%;
     --sidebar-accent: 220 15% 15%;
-    --sidebar-accent-foreground: 40 20% 90%;
+    --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 220 15% 18%;
     --sidebar-ring: 43 80% 55%;
 
-    --font-display: 'Space Grotesk', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
   }
 }
 
@@ -61,8 +61,11 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.011em;
   }
 
   .font-mono {
