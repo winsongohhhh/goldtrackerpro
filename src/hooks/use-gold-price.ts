@@ -31,14 +31,6 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
   const { interval, range: r } = getYahooParams(range);
 
   try {
-    const { data, error } = await supabase.functions.invoke('yahoo-finance', {
-      body: null,
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    // supabase.functions.invoke uses POST by default, but we need GET params
-    // Let's use fetch directly with the edge function URL
-    const projectId = import.meta.env.VITE_SUPABASE_URL?.replace('https://', '').replace('.supabase.co', '');
     const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/yahoo-finance?interval=${interval}&range=${r}`;
     
     const res = await fetch(fnUrl, {
