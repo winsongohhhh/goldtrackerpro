@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { GoldPrice } from '@/lib/gold-types';
+import { supabase } from '@/integrations/supabase/client';
 
 const OZ_TO_GRAM = 31.1035;
 
@@ -28,67 +29,47 @@ function getYahooParams(range: TimeRange): YahooParams {
 
 async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | null> {
   const { interval, range: r } = getYahooParams(range);
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=${interval}&range=${r}`;
 
-  // Try multiple CORS proxies
-  const proxies = [
-    (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  ];
-
-  for (const proxy of proxies) {
-    try {
-      const res = await fetch(proxy(yahooUrl));
-      if (!res.ok) continue;
-      const data = await res.json();
-      const result = data?.chart?.result?.[0];
-      if (!result) continue;
-
-      const timestamps: number[] = result.timestamp;
-      const closes: (number | null)[] = result.indicators?.quote?.[0]?.close;
-      if (!timestamps || !closes) continue;
-
-      const points: GoldPrice[] = [];
-      for (let i = 0; i < timestamps.length; i++) {
-        const close = closes[i];
-        if (close != null && close > 0) {
-          points.push({
-            timestamp: timestamps[i] * 1000,
-            price: Math.round((close / OZ_TO_GRAM) * 100) / 100,
-          });
-        }
-      }
-      if (points.length > 0) return points;
-    } catch {
-      continue;
-    }
-  }
-
-  // Direct attempt (may work in some environments)
   try {
-    const res = await fetch(yahooUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    if (res.ok) {
-      const data = await res.json();
-      const result = data?.chart?.result?.[0];
-      if (result) {
-        const timestamps: number[] = result.timestamp;
-        const closes: (number | null)[] = result.indicators?.quote?.[0]?.close;
-        if (timestamps && closes) {
-          const points: GoldPrice[] = [];
-          for (let i = 0; i < timestamps.length; i++) {
-            const close = closes[i];
-            if (close != null && close > 0) {
-              points.push({
-                timestamp: timestamps[i] * 1000,
-                price: Math.round((close / OZ_TO_GRAM) * 100) / 100,
-              });
-            }
-          }
-          if (points.length > 0) return points;
-        }
+    const { data, error } = await supabase.functions.invoke('yahoo-finance', {
+      body: null,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    // supabase.functions.invoke uses POST by default, but we need GET params
+    // Let's use fetch directly with the edge function URL
+    const projectId = import.meta.env.VITE_SUPABASE_URL?.replace('https://', '').replace('.supabase.co', '');
+    const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/yahoo-finance?interval=${interval}&range=${r}`;
+    
+    const res = await fetch(fnUrl, {
+      headers: {
+        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+    });
+
+    if (!res.ok) return null;
+    const json = await res.json();
+    const result = json?.chart?.result?.[0];
+    if (!result) return null;
+
+    const timestamps: number[] = result.timestamp;
+    const closes: (number | null)[] = result.indicators?.quote?.[0]?.close;
+    if (!timestamps || !closes) return null;
+
+    const points: GoldPrice[] = [];
+    for (let i = 0; i < timestamps.length; i++) {
+      const close = closes[i];
+      if (close != null && close > 0) {
+        points.push({
+          timestamp: timestamps[i] * 1000,
+          price: Math.round((close / OZ_TO_GRAM) * 100) / 100,
+        });
       }
     }
-  } catch { /* fallback */ }
+    if (points.length > 0) return points;
+  } catch {
+    // fallback
+  }
 
   return null;
 }
