@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo } from 'react';
-import { createChart, ColorType, CrosshairMode, type IChartApi, type ISeriesApi } from 'lightweight-charts';
+import { createChart, ColorType, CrosshairMode, AreaSeries, type IChartApi, type ISeriesApi } from 'lightweight-charts';
 import type { GoldPrice, Currency, WeightUnit } from '@/lib/gold-types';
 import type { TimeRange } from '@/hooks/use-gold-price';
 import { priceForUnit, formatCurrency } from '@/lib/gold-types';
