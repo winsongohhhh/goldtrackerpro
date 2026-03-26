@@ -14,7 +14,7 @@ import type { Currency, WeightUnit } from '@/lib/gold-types';
 import { formatCurrency, priceForUnit } from '@/lib/gold-types';
 
 const Index = () => {
-  const { prices, currentPrice, loading, lastUpdated, refetch } = useGoldPrice();
+  const { prices, currentPrice, loading, lastUpdated, refetch, timeRange, setTimeRange } = useGoldPrice();
   const { trades, addTrade, deleteTrade } = useTrades();
   const { convert } = useExchangeRates();
   const { t, lang, setLang } = useI18n();
@@ -30,10 +30,10 @@ const Index = () => {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="text-2xl font-semibold tracking-tight">
               {t.appTitle}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {t.appSubtitle}
             </p>
           </div>
@@ -42,13 +42,12 @@ const Index = () => {
               variant="ghost"
               size="sm"
               onClick={() => setLang(lang === 'cn' ? 'en' : 'cn')}
-              className="text-muted-foreground hover:text-primary gap-1"
+              className="text-muted-foreground hover:text-foreground gap-1 text-xs"
             >
-              <Globe className="w-4 h-4" />
+              <Globe className="w-3.5 h-3.5" />
               {lang === 'cn' ? 'EN' : '中文'}
             </Button>
 
-            {/* Unit toggle */}
             <Select value={unit} onValueChange={v => setUnit(v as WeightUnit)}>
               <SelectTrigger className="w-16 bg-secondary border-border text-xs h-8">
                 <SelectValue />
@@ -59,7 +58,6 @@ const Index = () => {
               </SelectContent>
             </Select>
 
-            {/* Currency selector */}
             <Select value={displayCurrency} onValueChange={v => setDisplayCurrency(v as Currency)}>
               <SelectTrigger className="w-20 bg-secondary border-border text-xs h-8">
                 <SelectValue />
@@ -74,7 +72,7 @@ const Index = () => {
 
             {currentPrice > 0 && (
               <div className="text-right">
-                <div className="font-mono text-lg font-bold text-primary">
+                <div className="font-mono text-lg font-semibold text-primary tabular-nums">
                   {formatCurrency(displayPrice, displayCurrency)}
                 </div>
                 <div className="text-[10px] text-muted-foreground">{displayCurrency}{unitLabel}</div>
@@ -84,20 +82,20 @@ const Index = () => {
               variant="ghost"
               size="icon"
               onClick={refetch}
-              className="text-muted-foreground hover:text-primary"
+              className="text-muted-foreground hover:text-foreground h-8 w-8"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
 
         {/* Price Chart */}
         <section className="bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
               {t.priceChart}
             </h2>
-            <span className="text-[10px] text-muted-foreground font-mono">
+            <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
               {t.updated}: {lastUpdated.toLocaleTimeString('zh-CN')}
             </span>
           </div>
@@ -107,6 +105,8 @@ const Index = () => {
             convert={convert}
             displayCurrency={displayCurrency}
             unit={unit}
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
           />
         </section>
 
@@ -121,7 +121,7 @@ const Index = () => {
 
         {/* Add Trade */}
         <section className="bg-card rounded-xl border border-border p-5">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-4">
             {t.addTrade}
           </h2>
           <AddTradeForm
@@ -135,7 +135,7 @@ const Index = () => {
 
         {/* Trade List */}
         <section className="bg-card rounded-xl border border-border p-5">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-4">
             {t.tradeList}
           </h2>
           <TradeList
