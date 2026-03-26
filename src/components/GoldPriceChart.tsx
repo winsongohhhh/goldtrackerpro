@@ -68,7 +68,7 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
       handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
     });
 
-    const series = chart.addAreaSeries({
+    const series = chart.addSeries('Area', {
       lineColor: 'hsl(43, 80%, 55%)',
       topColor: 'hsla(43, 80%, 55%, 0.3)',
       bottomColor: 'hsla(43, 80%, 55%, 0.02)',
