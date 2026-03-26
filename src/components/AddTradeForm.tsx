@@ -46,6 +46,20 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
+      <div className="w-24">
+        <label className="text-xs text-muted-foreground mb-1 block">{t.currency}</label>
+        <Select value={currency} onValueChange={v => setCurrency(v as Currency)}>
+          <SelectTrigger className="bg-secondary border-border">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="USD">USD</SelectItem>
+            <SelectItem value="CNY">CNY</SelectItem>
+            <SelectItem value="EUR">EUR</SelectItem>
+            <SelectItem value="MYR">MYR</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex-1 min-w-[120px]">
         <label className="text-xs text-muted-foreground mb-1 block">
           {t.buyPrice} (/{unitLabel})
@@ -71,20 +85,6 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
           onChange={e => setQuantity(e.target.value)}
           className="bg-secondary border-border font-mono"
         />
-      </div>
-      <div className="w-24">
-        <label className="text-xs text-muted-foreground mb-1 block">{t.currency}</label>
-        <Select value={currency} onValueChange={v => setCurrency(v as Currency)}>
-          <SelectTrigger className="bg-secondary border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="USD">USD</SelectItem>
-            <SelectItem value="CNY">CNY</SelectItem>
-            <SelectItem value="EUR">EUR</SelectItem>
-            <SelectItem value="MYR">MYR</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
       <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
         <Plus className="w-4 h-4 mr-1" />
