@@ -21,7 +21,7 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
   const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<'Area'> | null>(null);
+  const seriesRef = useRef<ISeriesApi<any> | null>(null);
 
   const data = useMemo(() =>
     prices.map(p => {
