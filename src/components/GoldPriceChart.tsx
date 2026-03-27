@@ -63,6 +63,8 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
         borderColor: 'hsla(220, 15%, 18%, 0.5)',
         timeVisible: timeRange === '1D' || timeRange === '1W',
         secondsVisible: false,
+        fixLeftEdge: true,
+        fixRightEdge: true,
       },
       handleScroll: { mouseWheel: true, pressedMouseMove: true },
       handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },

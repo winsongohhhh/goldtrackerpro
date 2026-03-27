@@ -75,10 +75,11 @@ export function useExchangeRates() {
 
   const convert = useCallback(
     (amountUSD: number, toCurrency: Currency): number => {
-      return amountUSD * rates[toCurrency];
+      // Use real gold price ratios instead of simple forex conversion
+      return amountUSD * goldRates[toCurrency];
     },
-    [rates]
+    [goldRates]
   );
 
-  return { rates, convert };
+  return { rates, goldRates, convert };
 }
