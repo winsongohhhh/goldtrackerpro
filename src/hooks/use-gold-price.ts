@@ -89,11 +89,16 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
 
 async function fetchCurrentPrice(): Promise<number | null> {
   try {
-    const res = await fetch('https://api.gold-api.com/price/XAU');
+    const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/yahoo-finance?mode=quote`;
+    const res = await fetch(fnUrl, {
+      headers: { 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+      cache: 'no-store',
+    });
     if (res.ok) {
       const data = await res.json();
-      if (typeof data?.price === 'number' && data.price > 0) {
-        return Math.round((data.price / OZ_TO_GRAM) * 100) / 100;
+      const price = data?.price;
+      if (typeof price === 'number' && price > 0) {
+        return Math.round((price / OZ_TO_GRAM) * 100) / 100;
       }
     }
   } catch { /* fallback */ }
