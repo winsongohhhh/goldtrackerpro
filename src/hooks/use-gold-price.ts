@@ -110,7 +110,7 @@ export function useGoldPrice() {
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [timeRange, setTimeRange] = useState<TimeRange>('1D');
+  const [timeRange, setTimeRange] = useState<TimeRange>('LIVE');
 
   useEffect(() => {
     let cancelled = false;
