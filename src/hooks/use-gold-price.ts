@@ -26,13 +26,17 @@ function getYahooParams(range: TimeRange): YahooParams {
   }
 }
 
-/** Convert a UTC unix timestamp (seconds) to NY-local unix timestamp for chart display */
+/** Get NY timezone offset from UTC in seconds (handles DST automatically) */
+function getNYOffset(): number {
+  const now = new Date();
+  const utcStr = now.toLocaleString('en-US', { timeZone: 'UTC' });
+  const nyStr = now.toLocaleString('en-US', { timeZone: 'America/New_York' });
+  return Math.round((new Date(nyStr).getTime() - new Date(utcStr).getTime()) / 1000);
+}
+
+/** Shift a UTC unix timestamp (seconds) to display as NY time in the chart */
 function toNYTimestamp(utcSeconds: number): number {
-  // Format the date in NY timezone, then parse back to get the "local" seconds
-  const date = new Date(utcSeconds * 1000);
-  const nyString = date.toLocaleString('en-US', { timeZone: 'America/New_York' });
-  const nyDate = new Date(nyString);
-  return Math.floor(nyDate.getTime() / 1000);
+  return utcSeconds + getNYOffset();
 }
 
 async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | null> {
