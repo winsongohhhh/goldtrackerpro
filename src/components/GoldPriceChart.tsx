@@ -24,14 +24,18 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
   const seriesRef = useRef<ISeriesApi<any> | null>(null);
 
   const data = useMemo(() =>
-    prices.map(p => {
-      const convertedPerGram = convert(p.price, displayCurrency);
-      const displayPrice = priceForUnit(convertedPerGram, unit);
-      return {
-        time: (Math.floor(p.timestamp / 1000)) as any,
-        value: Math.round(displayPrice * 100) / 100,
-      };
-    }).sort((a, b) => a.time - b.time),
+    prices
+      .map(p => {
+        const convertedPerGram = convert(p.price, displayCurrency);
+        const displayPrice = priceForUnit(convertedPerGram, unit);
+        const value = Math.round(displayPrice * 100) / 100;
+        return {
+          time: (Math.floor(p.timestamp / 1000)) as any,
+          value,
+        };
+      })
+      .filter(d => d.value != null && isFinite(d.value) && d.value > 0 && d.time > 0)
+      .sort((a, b) => a.time - b.time),
     [prices, convert, displayCurrency, unit]
   );
 
