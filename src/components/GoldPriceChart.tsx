@@ -23,8 +23,8 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<any> | null>(null);
 
-  const data = useMemo(() =>
-    prices
+  const data = useMemo(() => {
+    const mapped = prices
       .map(p => {
         const convertedPerGram = convert(p.price, displayCurrency);
         const displayPrice = priceForUnit(convertedPerGram, unit);
@@ -35,9 +35,16 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
         };
       })
       .filter(d => d.value != null && isFinite(d.value) && d.value > 0 && d.time > 0)
-      .sort((a, b) => a.time - b.time),
-    [prices, convert, displayCurrency, unit]
-  );
+      .sort((a, b) => a.time - b.time);
+
+    // Deduplicate by timestamp — lightweight-charts crashes on duplicates
+    const seen = new Set<number>();
+    return mapped.filter(d => {
+      if (seen.has(d.time)) return false;
+      seen.add(d.time);
+      return true;
+    });
+  }, [prices, convert, displayCurrency, unit]);
 
   // Create chart
   useEffect(() => {
