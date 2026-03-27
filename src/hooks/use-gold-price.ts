@@ -133,12 +133,21 @@ export function useGoldPrice() {
     const price = await fetchCurrentPrice();
     if (price) {
       setCurrentPrice(price);
-      if (timeRange === '1D') {
+      const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
+      if (timeRange === 'LIVE') {
+        // LIVE mode: append a new point every second to draw the line
         setPrices(prev => {
-          const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
           const newPoint: GoldPrice = { timestamp: nyTs, price };
           const updated = [...prev, newPoint];
-          return updated.slice(-500);
+          return updated.slice(-3600); // keep ~1 hour of seconds
+        });
+      } else {
+        // Other modes: update last point's price in-place for real-time tail movement
+        setPrices(prev => {
+          if (prev.length === 0) return prev;
+          const last = prev[prev.length - 1];
+          const updated = [...prev.slice(0, -1), { ...last, price }];
+          return updated;
         });
       }
       setLastUpdated(new Date());
