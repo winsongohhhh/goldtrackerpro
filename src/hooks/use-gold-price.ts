@@ -48,12 +48,14 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
     const closes: (number | null)[] = result.indicators?.quote?.[0]?.close;
     if (!timestamps || !closes) return null;
 
+    const gmtOffset = result.meta?.gmtoffset ?? 0;
     const points: GoldPrice[] = [];
     for (let i = 0; i < timestamps.length; i++) {
       const close = closes[i];
       if (close != null && close > 0) {
+        // Use the corrected timestamp (Yahoo returns exchange-local time)
         points.push({
-          timestamp: timestamps[i] * 1000,
+          timestamp: (timestamps[i] + gmtOffset) * 1000,
           price: Math.round((close / OZ_TO_GRAM) * 100) / 100,
         });
       }
