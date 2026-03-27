@@ -146,7 +146,7 @@ export function useGoldPrice() {
   }, [timeRange]);
 
   useEffect(() => {
-    const interval = setInterval(fetchPrice, 10000);
+    const interval = setInterval(fetchPrice, 1000);
     return () => clearInterval(interval);
   }, [fetchPrice]);
 
