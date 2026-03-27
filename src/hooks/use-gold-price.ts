@@ -3,7 +3,7 @@ import type { GoldPrice } from '@/lib/gold-types';
 
 const OZ_TO_GRAM = 31.1035;
 
-export type TimeRange = '1D' | '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y' | '2Y' | '5Y' | '10Y' | 'ALL';
+export type TimeRange = 'LIVE' | '1D' | '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y' | '2Y' | '5Y' | '10Y' | 'ALL';
 
 interface YahooParams {
   interval: string;
@@ -12,6 +12,7 @@ interface YahooParams {
 
 function getYahooParams(range: TimeRange): YahooParams {
   switch (range) {
+    case 'LIVE': return { interval: '1m',  range: '1d' };
     case '1D':  return { interval: '5m',  range: '1d' };
     case '1W':  return { interval: '15m', range: '5d' };
     case '1M':  return { interval: '1h',  range: '1mo' };
@@ -110,7 +111,7 @@ export function useGoldPrice() {
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [timeRange, setTimeRange] = useState<TimeRange>('1D');
+  const [timeRange, setTimeRange] = useState<TimeRange>('LIVE');
 
   useEffect(() => {
     let cancelled = false;
@@ -133,12 +134,21 @@ export function useGoldPrice() {
     const price = await fetchCurrentPrice();
     if (price) {
       setCurrentPrice(price);
-      if (timeRange === '1D') {
+      const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
+      if (timeRange === 'LIVE') {
+        // LIVE mode: append a new point every second to draw the line
         setPrices(prev => {
-          const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
           const newPoint: GoldPrice = { timestamp: nyTs, price };
           const updated = [...prev, newPoint];
-          return updated.slice(-500);
+          return updated.slice(-3600); // keep ~1 hour of seconds
+        });
+      } else {
+        // Other modes: update last point's price in-place for real-time tail movement
+        setPrices(prev => {
+          if (prev.length === 0) return prev;
+          const last = prev[prev.length - 1];
+          const updated = [...prev.slice(0, -1), { ...last, price }];
+          return updated;
         });
       }
       setLastUpdated(new Date());
