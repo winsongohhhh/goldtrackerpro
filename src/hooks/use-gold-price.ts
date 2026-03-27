@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { GoldPrice } from '@/lib/gold-types';
-import { supabase } from '@/integrations/supabase/client';
 
 const OZ_TO_GRAM = 31.1035;
 
@@ -27,6 +26,15 @@ function getYahooParams(range: TimeRange): YahooParams {
   }
 }
 
+/** Convert a UTC unix timestamp (seconds) to NY-local unix timestamp for chart display */
+function toNYTimestamp(utcSeconds: number): number {
+  // Format the date in NY timezone, then parse back to get the "local" seconds
+  const date = new Date(utcSeconds * 1000);
+  const nyString = date.toLocaleString('en-US', { timeZone: 'America/New_York' });
+  const nyDate = new Date(nyString);
+  return Math.floor(nyDate.getTime() / 1000);
+}
+
 async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | null> {
   const { interval, range: r } = getYahooParams(range);
 
@@ -45,18 +53,25 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
     if (!result) return null;
 
     const timestamps: number[] = result.timestamp;
-    const closes: (number | null)[] = result.indicators?.quote?.[0]?.close;
+    const quotes = result.indicators?.quote?.[0];
+    const closes: (number | null)[] = quotes?.close;
+    const highs: (number | null)[] = quotes?.high;
+    const lows: (number | null)[] = quotes?.low;
     if (!timestamps || !closes) return null;
 
-    const gmtOffset = result.meta?.gmtoffset ?? 0;
     const points: GoldPrice[] = [];
     for (let i = 0; i < timestamps.length; i++) {
       const close = closes[i];
+      const high = highs?.[i];
+      const low = lows?.[i];
       if (close != null && close > 0) {
-        // Use the corrected timestamp (Yahoo returns exchange-local time)
+        // Use mid of high/low if available, otherwise close
+        const mid = (high != null && low != null && high > 0 && low > 0)
+          ? (high + low) / 2
+          : close;
         points.push({
-          timestamp: (timestamps[i] + gmtOffset) * 1000,
-          price: Math.round((close / OZ_TO_GRAM) * 100) / 100,
+          timestamp: toNYTimestamp(timestamps[i]) * 1000,
+          price: Math.round((mid / OZ_TO_GRAM) * 100) / 100,
         });
       }
     }
@@ -88,7 +103,6 @@ export function useGoldPrice() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('1D');
 
-  // Load historical data when range changes
   useEffect(() => {
     let cancelled = false;
     async function loadHistory() {
@@ -106,14 +120,14 @@ export function useGoldPrice() {
     return () => { cancelled = true; };
   }, [timeRange]);
 
-  // Poll current price every 10s
   const fetchPrice = useCallback(async () => {
     const price = await fetchCurrentPrice();
     if (price) {
       setCurrentPrice(price);
       if (timeRange === '1D') {
         setPrices(prev => {
-          const newPoint: GoldPrice = { timestamp: Date.now(), price };
+          const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
+          const newPoint: GoldPrice = { timestamp: nyTs, price };
           const updated = [...prev, newPoint];
           return updated.slice(-500);
         });
