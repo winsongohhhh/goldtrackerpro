@@ -17,8 +17,11 @@ export function useExchangeRates() {
 
   const fetchRates = useCallback(async () => {
     try {
-      // Fetch live mid-market forex rates
-      const res = await fetch('https://open.er-api.com/v6/latest/USD');
+      // Fetch via edge function to avoid CORS issues
+      const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/yahoo-finance?mode=fx`;
+      const res = await fetch(fnUrl, {
+        headers: { 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+      });
       if (res.ok) {
         const data = await res.json();
         if (data?.rates) {
@@ -38,7 +41,7 @@ export function useExchangeRates() {
 
   useEffect(() => {
     fetchRates();
-    const interval = setInterval(fetchRates, 60 * 1000);
+    const interval = setInterval(fetchRates, 30 * 1000); // refresh every 30s
     return () => clearInterval(interval);
   }, [fetchRates]);
 
