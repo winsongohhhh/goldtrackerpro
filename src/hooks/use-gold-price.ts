@@ -113,15 +113,46 @@ export function useGoldPrice() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('LIVE');
 
+  // Fetch current price immediately on mount to avoid delay
+  useEffect(() => {
+    fetchCurrentPrice().then(price => {
+      if (price) setCurrentPrice(price);
+    });
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     async function loadHistory() {
       setLoading(true);
-      const historical = await fetchHistoricalPrices(timeRange);
+
+      // Fetch current price and history in parallel for instant display
+      const [historical, price] = await Promise.all([
+        fetchHistoricalPrices(timeRange),
+        fetchCurrentPrice(),
+      ]);
       if (cancelled) return;
-      if (historical && historical.length > 0) {
-        setPrices(historical);
-        setCurrentPrice(historical[historical.length - 1].price);
+
+      if (price) setCurrentPrice(price);
+
+      if (timeRange === 'LIVE') {
+        // For LIVE, we only want the last 2 minutes of data
+        // Start with current price as single point, will draw from here
+        const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
+        const currentP = price || currentPrice;
+        if (currentP > 0) {
+          setPrices([{ timestamp: nyTs, price: currentP }]);
+        } else if (historical && historical.length > 0) {
+          // Fallback: use last 2 min of historical
+          const twoMinAgo = Date.now() - 120_000;
+          const recent = historical.filter(p => p.timestamp >= twoMinAgo);
+          setPrices(recent.length > 0 ? recent : historical.slice(-10));
+          setCurrentPrice(historical[historical.length - 1].price);
+        }
+      } else {
+        if (historical && historical.length > 0) {
+          setPrices(historical);
+          if (!price) setCurrentPrice(historical[historical.length - 1].price);
+        }
       }
       setLoading(false);
       setLastUpdated(new Date());
@@ -136,19 +167,19 @@ export function useGoldPrice() {
       setCurrentPrice(price);
       const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
       if (timeRange === 'LIVE') {
-        // LIVE mode: append a new point every second to draw the line
+        // LIVE mode: append a new point every second, keep only last 2 minutes (120 points)
         setPrices(prev => {
           const newPoint: GoldPrice = { timestamp: nyTs, price };
           const updated = [...prev, newPoint];
-          return updated.slice(-3600); // keep ~1 hour of seconds
+          // Keep only last 120 seconds (2 minutes)
+          return updated.slice(-120);
         });
       } else {
         // Other modes: update last point's price in-place for real-time tail movement
         setPrices(prev => {
           if (prev.length === 0) return prev;
           const last = prev[prev.length - 1];
-          const updated = [...prev.slice(0, -1), { ...last, price }];
-          return updated;
+          return [...prev.slice(0, -1), { ...last, price }];
         });
       }
       setLastUpdated(new Date());
@@ -156,6 +187,8 @@ export function useGoldPrice() {
   }, [timeRange]);
 
   useEffect(() => {
+    // Start fetching immediately, then every second
+    fetchPrice();
     const interval = setInterval(fetchPrice, 1000);
     return () => clearInterval(interval);
   }, [fetchPrice]);
