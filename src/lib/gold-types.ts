@@ -1,4 +1,4 @@
-export type Currency = 'USD' | 'CNY' | 'EUR' | 'MYR';
+export type Currency = 'USD' | 'CNY' | 'EUR' | 'MYR' | 'SGD';
 export type WeightUnit = 'g' | 'oz';
 
 export const OZ_TO_GRAM = 31.1035;
@@ -21,10 +21,11 @@ export const CURRENCY_LABELS: Record<Currency, string> = {
   CNY: 'CNY',
   EUR: 'EUR',
   MYR: 'MYR',
+  SGD: 'SGD',
 };
 
 export function formatCurrency(value: number, currency: Currency): string {
-  const locale = currency === 'CNY' ? 'zh-CN' : currency === 'MYR' ? 'ms-MY' : 'en-US';
+  const locale = currency === 'CNY' ? 'zh-CN' : currency === 'MYR' ? 'ms-MY' : currency === 'SGD' ? 'en-SG' : 'en-US';
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,

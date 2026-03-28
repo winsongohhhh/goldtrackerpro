@@ -9,6 +9,7 @@ const FALLBACK_RATES: Rates = {
   CNY: 7.24,
   EUR: 0.92,
   MYR: 4.47,
+  SGD: 1.34,
 };
 
 export function useExchangeRates() {
@@ -26,6 +27,7 @@ export function useExchangeRates() {
             CNY: data.rates.CNY ?? FALLBACK_RATES.CNY,
             EUR: data.rates.EUR ?? FALLBACK_RATES.EUR,
             MYR: data.rates.MYR ?? FALLBACK_RATES.MYR,
+            SGD: data.rates.SGD ?? FALLBACK_RATES.SGD,
           });
         }
       }

@@ -67,6 +67,7 @@ const Index = () => {
                 <SelectItem value="CNY">CNY</SelectItem>
                 <SelectItem value="EUR">EUR</SelectItem>
                 <SelectItem value="MYR">MYR</SelectItem>
+                <SelectItem value="SGD">SGD</SelectItem>
               </SelectContent>
             </Select>
 
