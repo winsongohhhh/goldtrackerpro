@@ -7,7 +7,8 @@ import { useGoldPrice } from '@/hooks/use-gold-price';
 import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { useTrades } from '@/hooks/use-trades';
 import { useI18n } from '@/lib/i18n';
-import { RefreshCw, Globe } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { RefreshCw, Globe, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Currency, WeightUnit } from '@/lib/gold-types';
@@ -18,6 +19,7 @@ const Index = () => {
   const { trades, addTrade, deleteTrade } = useTrades();
   const { convert } = useExchangeRates();
   const { t, lang, setLang } = useI18n();
+  const { signOut } = useAuth();
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
   const [unit, setUnit] = useState<WeightUnit>('g');
 
@@ -86,6 +88,15 @@ const Index = () => {
               className="text-muted-foreground hover:text-foreground h-8 w-8"
             >
               <RefreshCw className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              className="text-muted-foreground hover:text-foreground h-8 w-8"
+              title={lang === 'cn' ? '退出登录' : 'Sign Out'}
+            >
+              <LogOut className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
