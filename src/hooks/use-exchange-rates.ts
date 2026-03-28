@@ -27,6 +27,7 @@ export function useExchangeRates() {
             CNY: data.rates.CNY ?? FALLBACK_RATES.CNY,
             EUR: data.rates.EUR ?? FALLBACK_RATES.EUR,
             MYR: data.rates.MYR ?? FALLBACK_RATES.MYR,
+            SGD: data.rates.SGD ?? FALLBACK_RATES.SGD,
           });
         }
       }

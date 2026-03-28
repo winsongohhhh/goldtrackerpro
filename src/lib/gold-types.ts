@@ -25,7 +25,7 @@ export const CURRENCY_LABELS: Record<Currency, string> = {
 };
 
 export function formatCurrency(value: number, currency: Currency): string {
-  const locale = currency === 'CNY' ? 'zh-CN' : currency === 'MYR' ? 'ms-MY' : 'en-US';
+  const locale = currency === 'CNY' ? 'zh-CN' : currency === 'MYR' ? 'ms-MY' : currency === 'SGD' ? 'en-SG' : 'en-US';
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
