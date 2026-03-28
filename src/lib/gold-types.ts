@@ -21,6 +21,7 @@ export const CURRENCY_LABELS: Record<Currency, string> = {
   CNY: 'CNY',
   EUR: 'EUR',
   MYR: 'MYR',
+  SGD: 'SGD',
 };
 
 export function formatCurrency(value: number, currency: Currency): string {
