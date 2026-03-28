@@ -1,4 +1,4 @@
-export type Currency = 'USD' | 'CNY' | 'EUR' | 'MYR';
+export type Currency = 'USD' | 'CNY' | 'EUR' | 'MYR' | 'SGD';
 export type WeightUnit = 'g' | 'oz';
 
 export const OZ_TO_GRAM = 31.1035;
