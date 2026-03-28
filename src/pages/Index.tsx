@@ -89,6 +89,15 @@ const Index = () => {
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              className="text-muted-foreground hover:text-foreground h-8 w-8"
+              title={lang === 'cn' ? '退出登录' : 'Sign Out'}
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </Button>
           </div>
         </div>
 
