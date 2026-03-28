@@ -19,6 +19,7 @@ const Index = () => {
   const { trades, addTrade, deleteTrade } = useTrades();
   const { convert } = useExchangeRates();
   const { t, lang, setLang } = useI18n();
+  const { signOut } = useAuth();
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
   const [unit, setUnit] = useState<WeightUnit>('g');
 
