@@ -9,6 +9,7 @@ const FALLBACK_RATES: Rates = {
   CNY: 7.24,
   EUR: 0.92,
   MYR: 4.47,
+  SGD: 1.34,
 };
 
 export function useExchangeRates() {
