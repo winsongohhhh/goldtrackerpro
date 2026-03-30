@@ -3,22 +3,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
-
-async function fetchYahooQuote(symbol: string): Promise<number | null> {
-  // Try v8 chart endpoint (more reliable than v6 quote)
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1m&range=1d`;
-    const res = await fetch(url, { headers: { 'User-Agent': UA } });
-    if (res.ok) {
-      const data = await res.json();
-      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      if (typeof price === 'number' && price > 0) return price;
-    }
-  } catch { /* fallback */ }
-  return null;
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -27,28 +11,42 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const mode = url.searchParams.get('mode') || 'chart';
+    const GOLD_API_KEY = Deno.env.get('GOLD_API_KEY') || '';
 
     if (mode === 'fx') {
-      // Fetch exchange rates from Yahoo Finance using currency pair symbols
-      const pairs = ['USDCNY', 'USDEUR', 'USDMYR', 'USDSGD'];
-      const symbols = pairs.map(p => `${p}=X`).join(',');
-      
+      // Use fawazahmed0 currency API (free, no key needed)
+      const currencies = ['cny', 'eur', 'myr', 'sgd'];
       const rates: Record<string, number> = { USD: 1 };
-      
-      // Fetch all pairs via Yahoo chart endpoint
-      const results = await Promise.all(
-        pairs.map(async (pair) => {
-          const symbol = `${pair}=X`;
-          const price = await fetchYahooQuote(symbol);
-          return { pair, price };
-        })
-      );
-      
-      for (const { pair, price } of results) {
-        if (price) {
-          const currency = pair.replace('USD', '');
-          rates[currency] = price;
+
+      try {
+        const res = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+        if (res.ok) {
+          const data = await res.json();
+          const usdRates = data?.usd;
+          if (usdRates) {
+            for (const c of currencies) {
+              if (usdRates[c]) {
+                rates[c.toUpperCase()] = usdRates[c];
+              }
+            }
+          }
         }
+      } catch {
+        // fallback: try alternative URL
+        try {
+          const res = await fetch('https://latest.currency-api.pages.dev/v1/currencies/usd.json');
+          if (res.ok) {
+            const data = await res.json();
+            const usdRates = data?.usd;
+            if (usdRates) {
+              for (const c of currencies) {
+                if (usdRates[c]) {
+                  rates[c.toUpperCase()] = usdRates[c];
+                }
+              }
+            }
+          }
+        } catch { /* keep defaults */ }
       }
 
       return new Response(JSON.stringify({ rates }), {
@@ -57,25 +55,40 @@ Deno.serve(async (req) => {
     }
 
     if (mode === 'quote') {
-      // Real-time gold quote via Yahoo Finance chart endpoint
-      const price = await fetchYahooQuote('GC=F');
-      if (price) {
-        return new Response(JSON.stringify({ price }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      // Use Gold-API.com for real-time gold price (XAU/USD)
+      try {
+        const res = await fetch('https://www.goldapi.io/api/XAU/USD', {
+          headers: {
+            'x-access-token': GOLD_API_KEY,
+            'Content-Type': 'application/json',
+          },
         });
-      }
+        if (res.ok) {
+          const data = await res.json();
+          // Gold-API returns price per troy ounce
+          const price = data?.price;
+          if (typeof price === 'number' && price > 0) {
+            return new Response(JSON.stringify({ price }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+      } catch { /* fallback below */ }
+
       return new Response(JSON.stringify({ error: 'Failed to fetch gold price' }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Chart mode (historical data)
+    // Chart mode (historical data) - use Gold-API.com history
+    // Gold-API free tier has limited historical, so we fall back to Yahoo for charts
     const interval = url.searchParams.get('interval') || '5m';
     const range = url.searchParams.get('range') || '1d';
 
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=${interval}&range=${range}`;
-    
+    const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+
     const res = await fetch(yahooUrl, {
       headers: { 'User-Agent': UA },
     });
