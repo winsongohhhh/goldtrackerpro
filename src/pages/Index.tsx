@@ -161,6 +161,7 @@ const Index = () => {
           />
         </section>
       </div>
+      <GoldAdvisorChat />
     </div>
   );
 };
