@@ -9,6 +9,7 @@ import { useTrades } from '@/hooks/use-trades';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/hooks/use-auth';
 import { RefreshCw, Globe, LogOut } from 'lucide-react';
+import { GoldAdvisorChat } from '@/components/GoldAdvisorChat';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Currency, WeightUnit } from '@/lib/gold-types';
