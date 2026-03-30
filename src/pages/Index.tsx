@@ -32,12 +32,9 @@ const Index = () => {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Gold Tracker Pro" width={48} height={48} className="drop-shadow-md" />
-              <h1 className="text-2xl font-semibold tracking-tight">
-                Gold Tracker Pro
-              </h1>
-            </div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              ◆ Gold Tracker Pro
+            </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {t.appSubtitle}
             </p>

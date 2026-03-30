@@ -50,7 +50,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">◆ Gold Tracker</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">◆ Gold Tracker Pro</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {isLogin
               ? (lang === 'cn' ? '登录以同步您的交易记录' : 'Sign in to sync your trades')
