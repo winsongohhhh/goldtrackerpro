@@ -33,7 +33,7 @@ const Index = () => {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              ◆ Gold Tracker Pro
+              Gold Tracker Pro
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {t.appSubtitle}
