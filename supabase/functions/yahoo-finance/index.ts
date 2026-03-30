@@ -55,18 +55,36 @@ Deno.serve(async (req) => {
     }
 
     if (mode === 'quote') {
-      // Use Gold-API.com for real-time gold price (XAU/USD)
+      // Use TradingView scanner API for real-time gold price (TVC:GOLD, US$/OZ)
       try {
-        const res = await fetch('https://www.goldapi.io/api/XAU/USD', {
-          headers: {
-            'x-access-token': GOLD_API_KEY,
-            'Content-Type': 'application/json',
-          },
+        const res = await fetch('https://scanner.tradingview.com/cfd/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            symbols: { tickers: ['TVC:GOLD'] },
+            columns: ['close', 'open', 'high', 'low', 'change'],
+          }),
         });
         if (res.ok) {
           const data = await res.json();
-          // Gold-API returns price per troy ounce
-          const price = data?.price;
+          const price = data?.data?.[0]?.d?.[0]; // close price
+          if (typeof price === 'number' && price > 0) {
+            return new Response(JSON.stringify({ price }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+      } catch { /* fallback below */ }
+
+      // Fallback: Yahoo Finance GC=F
+      try {
+        const res = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1m&range=1d', {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const meta = data?.chart?.result?.[0]?.meta;
+          const price = meta?.regularMarketPrice;
           if (typeof price === 'number' && price > 0) {
             return new Response(JSON.stringify({ price }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
