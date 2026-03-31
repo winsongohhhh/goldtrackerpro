@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -141,7 +142,9 @@ export function GoldAdvisorChat() {
                     ? 'bg-primary text-primary-foreground rounded-br-md'
                     : 'bg-secondary/80 text-foreground rounded-bl-md'
                 )}>
-                  {m.content}
+                  <div className="prose prose-sm prose-invert max-w-none [&>p]:m-0 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:my-1 [&>li]:my-0 [&>ul]:pl-4 [&>ol]:pl-4">
+                    <ReactMarkdown>{m.content}</ReactMarkdown>
+                  </div>
                 </div>
                 {m.role === 'user' && (
                   <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center shrink-0 mt-1">
