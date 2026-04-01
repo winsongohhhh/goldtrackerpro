@@ -161,7 +161,7 @@ const Index = () => {
           />
         </section>
       </div>
-      <GoldAdvisorChat />
+      <GoldAdvisorChat currentPrice={currentPrice} />
     </div>
   );
 };
