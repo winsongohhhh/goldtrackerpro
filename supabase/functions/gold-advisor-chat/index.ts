@@ -5,8 +5,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const OZ_TO_GRAM = 31.1035;
+
 function buildSystemPrompt(lang: string, currentPrice?: number) {
-  const priceContext = currentPrice ? `\nCurrent real-time gold price: $${currentPrice} USD/oz.` : '';
+  let priceContext = '';
+  if (currentPrice) {
+    const perGram = (currentPrice / OZ_TO_GRAM).toFixed(2);
+    priceContext = `
+
+【实时金价数据 / Real-time Gold Price Data】
+- Gold price per troy ounce: $${currentPrice.toFixed(2)} USD/oz
+- Gold price per gram: $${perGram} USD/g
+- 1 troy ounce = 31.1035 grams
+
+CRITICAL: You MUST use ONLY these exact prices above when discussing current gold prices. NEVER guess, estimate, or use outdated prices. When converting to other currencies, clearly state you are estimating the exchange rate.`;
+  }
 
   if (lang === 'cn') {
     return `你是一位经验丰富的职业黄金分析师顾问。你精通全球黄金市场、技术分析、基本面分析、地缘政治对金价的影响，以及各种黄金投资工具（现货黄金、期货、ETF、实物金等）。
@@ -22,7 +35,8 @@ ${priceContext}
 - 你只讨论与黄金、贵金属和相关金融市场的话题
 - 如果用户问非黄金相关的话题，礼貌地引导回黄金话题
 - 始终提醒用户投资有风险，你的建议仅供参考
-- 用中文回复用户，除非用户使用其他语言`;
+- 用中文回复用户，除非用户使用其他语言
+- 【严禁】编造或猜测任何价格数据。只能使用上方提供的实时价格。注意区分"每盎司"和"每克"的价格，绝对不能混淆`;
   }
 
   return `You are an experienced professional gold analyst advisor. You are an expert in global gold markets, technical analysis, fundamental analysis, geopolitical impacts on gold prices, and various gold investment instruments (spot gold, futures, ETFs, physical gold, etc.).
@@ -38,7 +52,8 @@ Important rules:
 - Only discuss topics related to gold, precious metals, and related financial markets
 - If the user asks about non-gold topics, politely redirect to gold topics
 - Always remind users that investing carries risk and your advice is for reference only
-- Reply in the same language the user uses`;
+- Reply in the same language the user uses
+- NEVER fabricate or guess any price data. Only use the real-time prices provided above. Always distinguish between "per ounce" and "per gram" prices — never confuse the two`;
 }
 
 serve(async (req) => {
