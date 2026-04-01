@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
