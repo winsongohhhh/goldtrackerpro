@@ -5,7 +5,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `你是一位拥有超过20年经验的职业黄金分析师顾问。你精通全球黄金市场、技术分析、基本面分析、地缘政治对金价的影响，以及各种黄金投资工具（现货黄金、期货、ETF、实物金等）。
+function buildSystemPrompt(lang: string, currentPrice?: number) {
+  const priceContext = currentPrice ? `\nCurrent real-time gold price: $${currentPrice} USD/oz.` : '';
+
+  if (lang === 'cn') {
+    return `你是一位经验丰富的职业黄金分析师顾问。你精通全球黄金市场、技术分析、基本面分析、地缘政治对金价的影响，以及各种黄金投资工具（现货黄金、期货、ETF、实物金等）。
+${priceContext}
 
 你的职责是：
 - 为用户提供专业的黄金市场分析和投资建议
@@ -17,7 +22,24 @@ const SYSTEM_PROMPT = `你是一位拥有超过20年经验的职业黄金分析�
 - 你只讨论与黄金、贵金属和相关金融市场的话题
 - 如果用户问非黄金相关的话题，礼貌地引导回黄金话题
 - 始终提醒用户投资有风险，你的建议仅供参考
-- 可以用中文或英文回答，根据用户使用的语言`;
+- 用中文回复用户，除非用户使用其他语言`;
+  }
+
+  return `You are an experienced professional gold analyst advisor. You are an expert in global gold markets, technical analysis, fundamental analysis, geopolitical impacts on gold prices, and various gold investment instruments (spot gold, futures, ETFs, physical gold, etc.).
+${priceContext}
+
+Your responsibilities:
+- Provide professional gold market analysis and investment advice
+- Interpret market trends, technical indicators, and macroeconomic factors
+- Answer questions about gold investment strategies, risk management, and market knowledge
+- Explain complex financial concepts in plain language
+
+Important rules:
+- Only discuss topics related to gold, precious metals, and related financial markets
+- If the user asks about non-gold topics, politely redirect to gold topics
+- Always remind users that investing carries risk and your advice is for reference only
+- Reply in the same language the user uses`;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -25,7 +47,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, lang = 'en', currentPrice } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -38,10 +60,11 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: buildSystemPrompt(lang, currentPrice) },
           ...messages,
         ],
         stream: true,
+        tools: [{ type: "function", function: { name: "google_search", description: "Search the web for current gold market news, prices, and analysis", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } }],
       }),
     });
 

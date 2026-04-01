@@ -3,20 +3,30 @@ import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gold-advisor-chat`;
 
-export function GoldAdvisorChat() {
+export function GoldAdvisorChat({ currentPrice }: { currentPrice?: number }) {
+  const { lang } = useI18n();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: 'assistant', content: '你好！我是你的黄金分析顾问，拥有20年以上的专业经验。关于黄金市场的任何问题，都可以问我。📊' },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset welcome message when lang changes
+  useEffect(() => {
+    setMessages([{
+      role: 'assistant',
+      content: lang === 'cn'
+        ? '你好！我是你的黄金分析顾问。关于黄金市场的任何问题，都可以问我。📊'
+        : 'Hello! I\'m your Gold Analyst Advisor. Feel free to ask me anything about the gold market. 📊',
+    }]);
+  }, [lang]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -45,7 +55,7 @@ export function GoldAdvisorChat() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: newMessages, lang, currentPrice }),
       });
 
       if (!resp.ok || !resp.body) {
@@ -94,7 +104,7 @@ export function GoldAdvisorChat() {
     }
 
     setIsLoading(false);
-  }, [input, isLoading, messages]);
+  }, [input, isLoading, messages, lang, currentPrice]);
 
   return (
     <>
@@ -174,7 +184,7 @@ export function GoldAdvisorChat() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-                placeholder="问问关于黄金市场的问题..."
+                placeholder={lang === 'cn' ? '问问关于黄金市场的问题...' : 'Ask about the gold market...'}
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                 disabled={isLoading}
               />
