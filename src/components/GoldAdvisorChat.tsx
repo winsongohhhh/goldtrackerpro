@@ -184,7 +184,7 @@ export function GoldAdvisorChat({ currentPrice }: { currentPrice?: number }) {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-                placeholder="问问关于黄金市场的问题..."
+                placeholder={lang === 'cn' ? '问问关于黄金市场的问题...' : 'Ask about the gold market...'}
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                 disabled={isLoading}
               />
