@@ -64,6 +64,7 @@ serve(async (req) => {
           ...messages,
         ],
         stream: true,
+        tools: [{ type: "function", function: { name: "google_search", description: "Search the web for current gold market news, prices, and analysis", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } }],
       }),
     });
 
