@@ -7,18 +7,19 @@ const corsHeaders = {
 
 const OZ_TO_GRAM = 31.1035;
 
-function buildSystemPrompt(lang: string, currentPrice?: number) {
+function buildSystemPrompt(lang: string, currentPricePerGram?: number) {
   let priceContext = '';
-  if (currentPrice) {
-    const perGram = (currentPrice / OZ_TO_GRAM).toFixed(2);
+  if (currentPricePerGram && currentPricePerGram > 0) {
+    const perOz = (currentPricePerGram * OZ_TO_GRAM).toFixed(2);
+    const perGram = currentPricePerGram.toFixed(2);
     priceContext = `
 
-【实时金价数据 / Real-time Gold Price Data】
-- Gold price per troy ounce: $${currentPrice.toFixed(2)} USD/oz
+【实时金价数据 / Real-time Gold Price Data — MANDATORY USE】
 - Gold price per gram: $${perGram} USD/g
+- Gold price per troy ounce: $${perOz} USD/oz
 - 1 troy ounce = 31.1035 grams
 
-CRITICAL: You MUST use ONLY these exact prices above when discussing current gold prices. NEVER guess, estimate, or use outdated prices. When converting to other currencies, clearly state you are estimating the exchange rate.`;
+⚠️ ABSOLUTE RULE: You MUST use ONLY these exact prices. The per-gram price is ~$${perGram}, the per-ounce price is ~$${perOz}. NEVER confuse these two. NEVER invent or guess prices. If asked about price, quote both units clearly.`;
   }
 
   if (lang === 'cn') {
