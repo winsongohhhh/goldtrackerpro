@@ -104,7 +104,7 @@ export function GoldAdvisorChat({ currentPrice }: { currentPrice?: number }) {
     }
 
     setIsLoading(false);
-  }, [input, isLoading, messages]);
+  }, [input, isLoading, messages, lang, currentPrice]);
 
   return (
     <>
