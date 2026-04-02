@@ -153,22 +153,12 @@ export function useGoldPrice() {
     if (price) {
       setCurrentPrice(price);
       const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
-      if (timeRange === 'LIVE') {
-        // LIVE mode: append a new point every second, keep only last 2 minutes (120 points)
-        setPrices(prev => {
-          const newPoint: GoldPrice = { timestamp: nyTs, price };
-          const updated = [...prev, newPoint];
-          // Keep only last 120 seconds (2 minutes)
-          return updated.slice(-120);
-        });
-      } else {
-        // Other modes: update last point's price in-place for real-time tail movement
-        setPrices(prev => {
-          if (prev.length === 0) return prev;
-          const last = prev[prev.length - 1];
-          return [...prev.slice(0, -1), { ...last, price }];
-        });
-      }
+      // Update last point's price in-place for real-time tail
+      setPrices(prev => {
+        if (prev.length === 0) return prev;
+        const last = prev[prev.length - 1];
+        return [...prev.slice(0, -1), { ...last, timestamp: nyTs, price }];
+      });
       setLastUpdated(new Date());
     }
   }, [timeRange]);
