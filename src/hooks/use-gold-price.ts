@@ -3,7 +3,7 @@ import type { GoldPrice } from '@/lib/gold-types';
 
 const OZ_TO_GRAM = 31.1035;
 
-export type TimeRange = 'LIVE' | '1D' | '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y' | '2Y' | '5Y' | '10Y' | 'ALL';
+export type TimeRange = '7D' | '1M' | '6M' | '1Y' | 'ALL';
 
 interface YahooParams {
   interval: string;
@@ -12,17 +12,10 @@ interface YahooParams {
 
 function getYahooParams(range: TimeRange): YahooParams {
   switch (range) {
-    case 'LIVE': return { interval: '1m',  range: '1d' };
-    case '1D':  return { interval: '5m',  range: '1d' };
-    case '1W':  return { interval: '15m', range: '5d' };
+    case '7D':  return { interval: '15m', range: '5d' };
     case '1M':  return { interval: '1h',  range: '1mo' };
-    case '3M':  return { interval: '1d',  range: '3mo' };
     case '6M':  return { interval: '1d',  range: '6mo' };
-    case 'YTD': return { interval: '1d',  range: 'ytd' };
     case '1Y':  return { interval: '1d',  range: '1y' };
-    case '2Y':  return { interval: '1wk', range: '2y' };
-    case '5Y':  return { interval: '1wk', range: '5y' };
-    case '10Y': return { interval: '1mo', range: '10y' };
     case 'ALL': return { interval: '1mo', range: 'max' };
   }
 }
@@ -111,7 +104,7 @@ export function useGoldPrice() {
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [timeRange, setTimeRange] = useState<TimeRange>('LIVE');
+  const [timeRange, setTimeRange] = useState<TimeRange>('7D');
 
   // Fetch current price immediately on mount to avoid delay
   useEffect(() => {
@@ -134,25 +127,19 @@ export function useGoldPrice() {
 
       if (price) setCurrentPrice(price);
 
-      if (timeRange === 'LIVE') {
-        // For LIVE, we only want the last 2 minutes of data
-        // Start with current price as single point, will draw from here
-        const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
-        const currentP = price || currentPrice;
-        if (currentP > 0) {
-          setPrices([{ timestamp: nyTs, price: currentP }]);
-        } else if (historical && historical.length > 0) {
-          // Fallback: use last 2 min of historical
-          const twoMinAgo = Date.now() - 120_000;
-          const recent = historical.filter(p => p.timestamp >= twoMinAgo);
-          setPrices(recent.length > 0 ? recent : historical.slice(-10));
-          setCurrentPrice(historical[historical.length - 1].price);
+      if (historical && historical.length > 0) {
+        // Append current live price as the last data point
+        if (price && price > 0) {
+          const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
+          const lastHistTs = historical[historical.length - 1].timestamp;
+          if (nyTs > lastHistTs) {
+            historical.push({ timestamp: nyTs, price });
+          } else {
+            historical[historical.length - 1].price = price;
+          }
         }
-      } else {
-        if (historical && historical.length > 0) {
-          setPrices(historical);
-          if (!price) setCurrentPrice(historical[historical.length - 1].price);
-        }
+        setPrices(historical);
+        if (!price) setCurrentPrice(historical[historical.length - 1].price);
       }
       setLoading(false);
       setLastUpdated(new Date());
@@ -166,22 +153,12 @@ export function useGoldPrice() {
     if (price) {
       setCurrentPrice(price);
       const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
-      if (timeRange === 'LIVE') {
-        // LIVE mode: append a new point every second, keep only last 2 minutes (120 points)
-        setPrices(prev => {
-          const newPoint: GoldPrice = { timestamp: nyTs, price };
-          const updated = [...prev, newPoint];
-          // Keep only last 120 seconds (2 minutes)
-          return updated.slice(-120);
-        });
-      } else {
-        // Other modes: update last point's price in-place for real-time tail movement
-        setPrices(prev => {
-          if (prev.length === 0) return prev;
-          const last = prev[prev.length - 1];
-          return [...prev.slice(0, -1), { ...last, price }];
-        });
-      }
+      // Update last point's price in-place for real-time tail
+      setPrices(prev => {
+        if (prev.length === 0) return prev;
+        const last = prev[prev.length - 1];
+        return [...prev.slice(0, -1), { ...last, timestamp: nyTs, price }];
+      });
       setLastUpdated(new Date());
     }
   }, [timeRange]);
