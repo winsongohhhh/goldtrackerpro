@@ -77,8 +77,8 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
         fixLeftEdge: true,
         fixRightEdge: true,
       },
-      handleScroll: { mouseWheel: true, pressedMouseMove: true },
-      handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+      handleScroll: false,
+      handleScale: false,
     });
 
     const series = chart.addSeries(AreaSeries, {
