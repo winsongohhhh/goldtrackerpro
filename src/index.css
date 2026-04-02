@@ -69,6 +69,7 @@
   }
 
   .font-mono {
-    font-family: var(--font-mono);
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
   }
 }
