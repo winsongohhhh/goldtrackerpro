@@ -72,7 +72,7 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
       },
       timeScale: {
         borderColor: 'hsla(220, 15%, 18%, 0.5)',
-        timeVisible: timeRange === 'LIVE' || timeRange === '1D' || timeRange === '1W',
+        timeVisible: timeRange === '7D',
         secondsVisible: false,
         fixLeftEdge: true,
         fixRightEdge: true,
