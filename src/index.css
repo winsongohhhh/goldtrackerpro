@@ -50,8 +50,8 @@
     --sidebar-border: 220 15% 18%;
     --sidebar-ring: 43 80% 55%;
 
-    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Helvetica Neue', sans-serif;
+    --font-mono: 'SF Mono', ui-monospace, 'Menlo', 'Monaco', monospace;
   }
 }
 
@@ -69,6 +69,7 @@
   }
 
   .font-mono {
-    font-family: var(--font-mono);
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
   }
 }
