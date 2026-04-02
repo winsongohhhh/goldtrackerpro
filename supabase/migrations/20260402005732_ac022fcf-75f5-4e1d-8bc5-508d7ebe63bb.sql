@@ -1,0 +1,1 @@
+ALTER TABLE public.trades ALTER COLUMN date TYPE date USING date::date;
