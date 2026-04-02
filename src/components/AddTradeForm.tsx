@@ -20,6 +20,7 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [currency, setCurrency] = useState<Currency>(displayCurrency);
+  const [tradeUnit, setTradeUnit] = useState<WeightUnit>(unit);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +29,8 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
     if (isNaN(p) || isNaN(q) || q <= 0) return;
 
     // Convert input price (per unit) to per gram, and quantity to grams
-    const pricePerGram = unit === 'oz' ? p / 31.1035 : p;
-    const quantityGrams = unit === 'oz' ? q * 31.1035 : q;
+    const pricePerGram = tradeUnit === 'oz' ? p / 31.1035 : p;
+    const quantityGrams = tradeUnit === 'oz' ? q * 31.1035 : q;
 
     onAdd({
       date: new Date().toISOString().split('T')[0],
@@ -41,8 +42,8 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
     setQuantity('');
   };
 
-  const displayCurrentPrice = priceForUnit(convert(currentPrice, currency), unit);
-  const unitLabel = unit === 'oz' ? 'oz' : 'g';
+  const displayCurrentPrice = priceForUnit(convert(currentPrice, currency), tradeUnit);
+  const unitLabel = tradeUnit === 'oz' ? 'oz' : 'g';
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
