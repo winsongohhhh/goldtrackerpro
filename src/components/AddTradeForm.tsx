@@ -62,6 +62,17 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
           </SelectContent>
         </Select>
       </div>
+      <div className="w-20">
+        <label className="text-xs text-muted-foreground mb-1 block">{t.unit}</label>
+        <Select value={tradeUnit} onValueChange={v => setTradeUnit(v as WeightUnit)}>
+          <SelectTrigger className="bg-secondary border-border">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="oz">oz</SelectItem>
+            <SelectItem value="g">g</SelectItem>
+          </SelectContent>
+        </Select>
       <div className="flex-1 min-w-[120px]">
         <label className="text-xs text-muted-foreground mb-1 block">
           {t.buyPrice} (/{unitLabel})
