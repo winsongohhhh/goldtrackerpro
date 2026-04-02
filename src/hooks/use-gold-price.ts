@@ -12,7 +12,7 @@ interface YahooParams {
 
 function getYahooParams(range: TimeRange): YahooParams {
   switch (range) {
-    case '7D':  return { interval: '15m', range: '5d' };
+    case '7D':  return { interval: '15m', range: '1mo' };
     case '1M':  return { interval: '1h',  range: '1mo' };
     case '6M':  return { interval: '1d',  range: '6mo' };
     case '1Y':  return { interval: '1d',  range: '1y' };
