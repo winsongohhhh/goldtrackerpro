@@ -3,7 +3,7 @@ import type { GoldPrice } from '@/lib/gold-types';
 
 const OZ_TO_GRAM = 31.1035;
 
-export type TimeRange = 'LIVE' | '1D' | '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y' | '2Y' | '5Y' | '10Y' | 'ALL';
+export type TimeRange = '7D' | '1M' | '6M' | '1Y' | 'ALL';
 
 interface YahooParams {
   interval: string;
