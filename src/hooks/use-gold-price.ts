@@ -12,7 +12,7 @@ interface YahooParams {
 
 function getYahooParams(range: TimeRange): YahooParams {
   switch (range) {
-    case '7D':  return { interval: '15m', range: '5d' };
+    case '7D':  return { interval: '15m', range: '1mo' };
     case '1M':  return { interval: '1h',  range: '1mo' };
     case '6M':  return { interval: '1d',  range: '6mo' };
     case '1Y':  return { interval: '1d',  range: '1y' };
@@ -72,6 +72,12 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
           price: Math.round((mid / OZ_TO_GRAM) * 100) / 100,
         });
       }
+    }
+    // Filter to exact range for 7D
+    if (range === '7D' && points.length > 0) {
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const filtered = points.filter(p => p.timestamp >= sevenDaysAgo);
+      if (filtered.length > 0) return filtered;
     }
     if (points.length > 0) return points;
   } catch {
