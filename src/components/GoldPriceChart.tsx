@@ -15,7 +15,7 @@ interface Props {
   onTimeRangeChange: (range: TimeRange) => void;
 }
 
-const TIME_RANGES: TimeRange[] = ['LIVE', '1D', '1W', '1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y', '10Y', 'ALL'];
+const TIME_RANGES: TimeRange[] = ['7D', '1M', '6M', '1Y', 'ALL'];
 
 export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit, timeRange, onTimeRangeChange }: Props) {
   const { t } = useI18n();
