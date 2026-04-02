@@ -127,25 +127,19 @@ export function useGoldPrice() {
 
       if (price) setCurrentPrice(price);
 
-      if (timeRange === 'LIVE') {
-        // For LIVE, we only want the last 2 minutes of data
-        // Start with current price as single point, will draw from here
-        const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
-        const currentP = price || currentPrice;
-        if (currentP > 0) {
-          setPrices([{ timestamp: nyTs, price: currentP }]);
-        } else if (historical && historical.length > 0) {
-          // Fallback: use last 2 min of historical
-          const twoMinAgo = Date.now() - 120_000;
-          const recent = historical.filter(p => p.timestamp >= twoMinAgo);
-          setPrices(recent.length > 0 ? recent : historical.slice(-10));
-          setCurrentPrice(historical[historical.length - 1].price);
+      if (historical && historical.length > 0) {
+        // Append current live price as the last data point
+        if (price && price > 0) {
+          const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
+          const lastHistTs = historical[historical.length - 1].timestamp;
+          if (nyTs > lastHistTs) {
+            historical.push({ timestamp: nyTs, price });
+          } else {
+            historical[historical.length - 1].price = price;
+          }
         }
-      } else {
-        if (historical && historical.length > 0) {
-          setPrices(historical);
-          if (!price) setCurrentPrice(historical[historical.length - 1].price);
-        }
+        setPrices(historical);
+        if (!price) setCurrentPrice(historical[historical.length - 1].price);
       }
       setLoading(false);
       setLastUpdated(new Date());
