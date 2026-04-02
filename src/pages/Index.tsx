@@ -22,7 +22,7 @@ const Index = () => {
   const { t, lang, setLang } = useI18n();
   const { signOut } = useAuth();
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
-  const [unit, setUnit] = useState<WeightUnit>('g');
+  const [unit, setUnit] = useState<WeightUnit>('oz');
 
   const displayPrice = priceForUnit(convert(currentPrice, displayCurrency), unit);
   const unitLabel = unit === 'oz' ? '/oz' : '/g';
