@@ -73,6 +73,12 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
         });
       }
     }
+    // Filter to exact range for 7D
+    if (range === '7D' && points.length > 0) {
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const filtered = points.filter(p => p.timestamp >= sevenDaysAgo);
+      if (filtered.length > 0) return filtered;
+    }
     if (points.length > 0) return points;
   } catch {
     // fallback
