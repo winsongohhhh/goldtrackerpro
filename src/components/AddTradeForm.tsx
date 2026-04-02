@@ -73,6 +73,7 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
             <SelectItem value="g">g</SelectItem>
           </SelectContent>
         </Select>
+      </div>
       <div className="flex-1 min-w-[120px]">
         <label className="text-xs text-muted-foreground mb-1 block">
           {t.buyPrice} (/{unitLabel})
