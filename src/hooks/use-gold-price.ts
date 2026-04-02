@@ -12,17 +12,10 @@ interface YahooParams {
 
 function getYahooParams(range: TimeRange): YahooParams {
   switch (range) {
-    case 'LIVE': return { interval: '1m',  range: '1d' };
-    case '1D':  return { interval: '5m',  range: '1d' };
-    case '1W':  return { interval: '15m', range: '5d' };
+    case '7D':  return { interval: '15m', range: '5d' };
     case '1M':  return { interval: '1h',  range: '1mo' };
-    case '3M':  return { interval: '1d',  range: '3mo' };
     case '6M':  return { interval: '1d',  range: '6mo' };
-    case 'YTD': return { interval: '1d',  range: 'ytd' };
     case '1Y':  return { interval: '1d',  range: '1y' };
-    case '2Y':  return { interval: '1wk', range: '2y' };
-    case '5Y':  return { interval: '1wk', range: '5y' };
-    case '10Y': return { interval: '1mo', range: '10y' };
     case 'ALL': return { interval: '1mo', range: 'max' };
   }
 }
