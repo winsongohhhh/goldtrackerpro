@@ -50,8 +50,8 @@
     --sidebar-border: 220 15% 18%;
     --sidebar-ring: 43 80% 55%;
 
-    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
   }
 }
 
