@@ -31,78 +31,81 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold tracking-tight leading-none self-end">
+        <div className="space-y-2">
+          {/* Row 1: Title + Price + Refresh */}
+          <div className="flex items-end justify-between">
+            <h1 className="text-2xl font-semibold tracking-tight leading-none">
               Gold Tracker Pro
             </h1>
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-1.5">
               {currentPrice > 0 && (
-                <div className="text-right leading-none self-end">
+                <div className="text-right leading-none">
                   <div className="font-mono text-lg font-semibold text-primary tabular-nums leading-none">
                     {formatCurrency(displayPrice, displayCurrency)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{displayCurrency}{unitLabel}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5 text-right">{displayCurrency}{unitLabel}</div>
                 </div>
               )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={refetch}
-                className="text-muted-foreground hover:text-foreground h-7 w-7 sm:h-8 sm:w-8 self-end mb-[-2px]"
+                className="text-muted-foreground hover:text-foreground h-7 w-7 mb-[-2px]"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground hidden sm:block">
-              {t.appSubtitle}
-            </p>
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLang(lang === 'cn' ? 'en' : 'cn')}
-                className="text-muted-foreground hover:text-foreground h-8 gap-1 text-xs px-2"
-              >
-                <Globe className="w-3.5 h-3.5" />
-                {lang === 'cn' ? 'EN' : '中文'}
-              </Button>
 
-              <Select value={unit} onValueChange={v => setUnit(v as WeightUnit)}>
-                <SelectTrigger className="w-14 bg-secondary border-border text-xs h-8 px-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="g">g</SelectItem>
-                  <SelectItem value="oz">oz</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Desktop subtitle */}
+          <p className="text-sm text-muted-foreground hidden sm:block">
+            {t.appSubtitle}
+          </p>
 
-              <Select value={displayCurrency} onValueChange={v => setDisplayCurrency(v as Currency)}>
-                <SelectTrigger className="w-16 bg-secondary border-border text-xs h-8 px-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="CNY">CNY</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="MYR">MYR</SelectItem>
-                  <SelectItem value="SGD">SGD</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Row 2: Controls - right aligned */}
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLang(lang === 'cn' ? 'en' : 'cn')}
+              className="text-muted-foreground hover:text-foreground h-8 gap-1 text-xs px-2"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              {lang === 'cn' ? 'EN' : '中文'}
+            </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={signOut}
-                className="text-muted-foreground hover:text-foreground h-8 w-8"
-                title={lang === 'cn' ? '退出登录' : 'Sign Out'}
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+            <Select value={unit} onValueChange={v => setUnit(v as WeightUnit)}>
+              <SelectTrigger className="w-16 bg-secondary border-border text-xs h-8 px-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="g">g</SelectItem>
+                <SelectItem value="oz">oz</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={displayCurrency} onValueChange={v => setDisplayCurrency(v as Currency)}>
+              <SelectTrigger className="w-[68px] bg-secondary border-border text-xs h-8 px-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="CNY">CNY</SelectItem>
+                <SelectItem value="EUR">EUR</SelectItem>
+                <SelectItem value="MYR">MYR</SelectItem>
+                <SelectItem value="SGD">SGD</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              className="text-muted-foreground hover:text-foreground h-8 w-8"
+              title={lang === 'cn' ? '退出登录' : 'Sign Out'}
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </Button>
           </div>
         </div>
 
