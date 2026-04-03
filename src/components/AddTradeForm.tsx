@@ -84,7 +84,7 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
           placeholder={currentPrice ? `${t.currentPrice} ${displayCurrentPrice.toFixed(2)}/${unitLabel}` : t.price}
           value={price}
           onChange={e => setPrice(e.target.value)}
-          className="bg-secondary border-border font-mono"
+          className="bg-secondary border-border font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
       </div>
       <div className="flex-1 min-w-[100px]">
