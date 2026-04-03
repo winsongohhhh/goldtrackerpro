@@ -53,7 +53,6 @@ export function TradeList({ trades, currentPrice, onDelete, convert, displayCurr
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
             <TableHead className="text-muted-foreground">#</TableHead>
-            <TableHead className="text-muted-foreground">{t.date}</TableHead>
             <TableHead className="text-muted-foreground">{t.buyPrice}</TableHead>
             <TableHead className="text-muted-foreground">{t.quantity}</TableHead>
             <TableHead className="text-muted-foreground">{t.pnl}</TableHead>
