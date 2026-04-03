@@ -97,7 +97,7 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
           placeholder={unitLabel}
           value={quantity}
           onChange={e => setQuantity(e.target.value)}
-          className="bg-secondary border-border font-mono"
+          className="bg-secondary border-border font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
       </div>
       <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
