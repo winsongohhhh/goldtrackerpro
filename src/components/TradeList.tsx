@@ -67,7 +67,6 @@ export function TradeList({ trades, currentPrice, onDelete, convert, displayCurr
             return (
               <TableRow key={trade.id} className="border-border">
                 <TableCell className="font-mono text-muted-foreground">{i + 1}</TableCell>
-                <TableCell className="font-mono">{trade.date}</TableCell>
                 <TableCell className="font-mono">
                   {getDisplayPrice(trade)}
                 </TableCell>
