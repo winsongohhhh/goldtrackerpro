@@ -49,14 +49,14 @@ export function TradeList({ trades, currentPrice, onDelete, convert, displayCurr
 
   return (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="text-xs sm:text-sm">
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
-            <TableHead className="text-muted-foreground">#</TableHead>
-            <TableHead className="text-muted-foreground">{t.buyPrice}</TableHead>
-            <TableHead className="text-muted-foreground">{t.quantity}</TableHead>
-            <TableHead className="text-muted-foreground">{t.pnl}</TableHead>
-            <TableHead className="text-muted-foreground w-10"></TableHead>
+            <TableHead className="text-muted-foreground px-2 sm:px-4">#</TableHead>
+            <TableHead className="text-muted-foreground px-2 sm:px-4">{t.buyPrice}</TableHead>
+            <TableHead className="text-muted-foreground px-2 sm:px-4">{t.quantity}</TableHead>
+            <TableHead className="text-muted-foreground px-2 sm:px-4">{t.pnl}</TableHead>
+            <TableHead className="text-muted-foreground w-8 sm:w-10 px-1 sm:px-4"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -66,27 +66,27 @@ export function TradeList({ trades, currentPrice, onDelete, convert, displayCurr
             const displayQty = quantityForUnit(trade.quantity, unit);
             return (
               <TableRow key={trade.id} className="border-border">
-                <TableCell className="font-mono text-muted-foreground">{i + 1}</TableCell>
-                <TableCell className="font-mono">
+                <TableCell className="font-mono text-muted-foreground px-2 sm:px-4">{i + 1}</TableCell>
+                <TableCell className="font-mono px-2 sm:px-4 whitespace-nowrap">
                   {getDisplayPrice(trade)}
                 </TableCell>
-                <TableCell className="font-mono">
+                <TableCell className="font-mono px-2 sm:px-4 whitespace-nowrap">
                   {displayQty.toFixed(2)}{unitLabel}
                 </TableCell>
-                <TableCell>
-                  <span className={`inline-flex items-center gap-1 font-mono font-medium ${isProfit ? 'text-success' : 'text-destructive'}`}>
-                    {isProfit ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                <TableCell className="px-2 sm:px-4">
+                  <span className={`inline-flex items-center gap-0.5 sm:gap-1 font-mono font-medium whitespace-nowrap ${isProfit ? 'text-success' : 'text-destructive'}`}>
+                    {isProfit ? <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                     {isProfit ? '+' : ''}{formatCurrency(pnl, displayCurrency)}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-1 sm:px-4">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => onDelete(trade.id)}
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    className="h-6 w-6 sm:h-7 sm:w-7 text-muted-foreground hover:text-destructive"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </Button>
                 </TableCell>
               </TableRow>
