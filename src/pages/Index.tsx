@@ -31,49 +31,11 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold tracking-tight">
               Gold Tracker Pro
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {t.appSubtitle}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLang(lang === 'cn' ? 'en' : 'cn')}
-              className="text-muted-foreground hover:text-foreground gap-1 text-xs"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              {lang === 'cn' ? 'EN' : '中文'}
-            </Button>
-
-            <Select value={unit} onValueChange={v => setUnit(v as WeightUnit)}>
-              <SelectTrigger className="w-16 bg-secondary border-border text-xs h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="g">g</SelectItem>
-                <SelectItem value="oz">oz</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={displayCurrency} onValueChange={v => setDisplayCurrency(v as Currency)}>
-              <SelectTrigger className="w-20 bg-secondary border-border text-xs h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="CNY">CNY</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
-                <SelectItem value="MYR">MYR</SelectItem>
-                <SelectItem value="SGD">SGD</SelectItem>
-              </SelectContent>
-            </Select>
-
             {currentPrice > 0 && (
               <div className="text-right">
                 <div className="font-mono text-lg font-semibold text-primary tabular-nums">
@@ -82,23 +44,62 @@ const Index = () => {
                 <div className="text-[10px] text-muted-foreground">{displayCurrency}{unitLabel}</div>
               </div>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={refetch}
-              className="text-muted-foreground hover:text-foreground h-8 w-8"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={signOut}
-              className="text-muted-foreground hover:text-foreground h-8 w-8"
-              title={lang === 'cn' ? '退出登录' : 'Sign Out'}
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </Button>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground hidden sm:block">
+              {t.appSubtitle}
+            </p>
+            <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setLang(lang === 'cn' ? 'en' : 'cn')}
+                className="text-muted-foreground hover:text-foreground h-7 w-7 sm:h-8 sm:w-8 text-xs"
+              >
+                <Globe className="w-3.5 h-3.5" />
+              </Button>
+
+              <Select value={unit} onValueChange={v => setUnit(v as WeightUnit)}>
+                <SelectTrigger className="w-[42px] sm:w-16 bg-secondary border-border text-[10px] sm:text-xs h-7 sm:h-8 px-1.5 sm:px-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="g">g</SelectItem>
+                  <SelectItem value="oz">oz</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={displayCurrency} onValueChange={v => setDisplayCurrency(v as Currency)}>
+                <SelectTrigger className="w-[52px] sm:w-20 bg-secondary border-border text-[10px] sm:text-xs h-7 sm:h-8 px-1.5 sm:px-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="CNY">CNY</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="MYR">MYR</SelectItem>
+                  <SelectItem value="SGD">SGD</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={refetch}
+                className="text-muted-foreground hover:text-foreground h-7 w-7 sm:h-8 sm:w-8"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={signOut}
+                className="text-muted-foreground hover:text-foreground h-7 w-7 sm:h-8 sm:w-8"
+                title={lang === 'cn' ? '退出登录' : 'Sign Out'}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
 
