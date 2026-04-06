@@ -59,7 +59,7 @@ const Index = () => {
 
 
           {/* Row 2: Controls - right aligned */}
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-end gap-2 my-[10px]">
             <Button
               variant="ghost"
               size="sm"
