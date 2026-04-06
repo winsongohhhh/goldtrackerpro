@@ -39,9 +39,9 @@ const Index = () => {
             </h1>
             <div className="flex items-end gap-1.5">
               {currentPrice > 0 && (
-                <div className="text-right leading-none">
-                <div className="text-[10px] text-muted-foreground text-right mb-1">{displayCurrency}{unitLabel}</div>
-                  <div className="font-mono text-lg font-semibold text-primary tabular-nums leading-none">
+                <div className="text-right">
+                  <div className="text-[10px] text-muted-foreground text-right mb-0.5">{displayCurrency}{unitLabel}</div>
+                  <div className="font-mono text-2xl font-semibold text-primary tabular-nums leading-none">
                     {formatCurrency(displayPrice, displayCurrency)}
                   </div>
                 </div>
@@ -50,7 +50,7 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 onClick={refetch}
-                className="text-muted-foreground hover:text-foreground h-7 w-7 mb-[-2px]"
+                className="text-muted-foreground hover:text-foreground h-7 w-7"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </Button>
