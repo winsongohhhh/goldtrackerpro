@@ -40,7 +40,7 @@ const Index = () => {
             <div className="flex items-end gap-1.5">
               {currentPrice > 0 && (
                 <div className="text-right leading-none">
-                <div className="text-[10px] text-muted-foreground text-right">{displayCurrency}{unitLabel}</div>
+                <div className="text-[10px] text-muted-foreground text-right mb-1">{displayCurrency}{unitLabel}</div>
                   <div className="font-mono text-lg font-semibold text-primary tabular-nums leading-none">
                     {formatCurrency(displayPrice, displayCurrency)}
                   </div>
