@@ -57,10 +57,6 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Desktop subtitle */}
-          <p className="text-sm text-muted-foreground hidden sm:block">
-            {t.appSubtitle}
-          </p>
 
           {/* Row 2: Controls - right aligned */}
           <div className="flex items-center justify-end gap-2">
