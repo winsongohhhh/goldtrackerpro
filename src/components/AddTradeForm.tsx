@@ -106,7 +106,7 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
           </div>
         </div>
       </div>
-      <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 w-full mt-[32px] mb-[30px]">
+      <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 w-full mt-[20px] mb-[30px]">
         <Plus className="w-4 h-4 mr-1" />
         {t.add}
       </Button>
