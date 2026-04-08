@@ -63,13 +63,9 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
       const high = highs?.[i];
       const low = lows?.[i];
       if (close != null && close > 0) {
-        // Use mid of high/low if available, otherwise close
-        const mid = (high != null && low != null && high > 0 && low > 0)
-          ? (high + low) / 2
-          : close;
         points.push({
           timestamp: toNYTimestamp(timestamps[i]) * 1000,
-          price: Math.round((mid / OZ_TO_GRAM) * 100) / 100,
+          price: Math.round((close / OZ_TO_GRAM) * 100) / 100,
         });
       }
     }
