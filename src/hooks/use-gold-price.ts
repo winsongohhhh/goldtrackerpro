@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { GoldPrice } from '@/lib/gold-types';
 
-const OZ_TO_GRAM = 31.1035;
-
 export type TimeRange = '7D' | '1M' | '6M' | '1Y' | 'ALL';
 
 interface YahooParams {
@@ -65,7 +63,7 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
       if (close != null && close > 0) {
         points.push({
           timestamp: toNYTimestamp(timestamps[i]) * 1000,
-          price: Math.round((close / OZ_TO_GRAM) * 100) / 100,
+          price: Math.round(close * 100) / 100,
         });
       }
     }
@@ -94,7 +92,7 @@ async function fetchCurrentPrice(): Promise<number | null> {
       const data = await res.json();
       const price = data?.price;
       if (typeof price === 'number' && price > 0) {
-        return Math.round((price / OZ_TO_GRAM) * 100) / 100;
+        return Math.round(price * 100) / 100;
       }
     }
   } catch { /* fallback */ }
