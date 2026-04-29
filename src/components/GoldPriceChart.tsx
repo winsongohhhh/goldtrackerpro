@@ -156,7 +156,7 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
           </div>
         )}
         <div ref={containerRef} className="h-[400px] w-full" />
-        <div className="text-[10px] text-muted-foreground text-right mt-1 font-mono">NY Time (ET)</div>
+        <div className="text-[10px] text-muted-foreground text-right mt-1 font-mono">Local Time</div>
       </div>
     </div>
   );
