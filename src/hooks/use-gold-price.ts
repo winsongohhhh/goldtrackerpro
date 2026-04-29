@@ -20,19 +20,6 @@ function getYahooParams(range: TimeRange): YahooParams {
   }
 }
 
-/** Get NY timezone offset from UTC in seconds (handles DST automatically) */
-function getNYOffset(): number {
-  const now = new Date();
-  const utcStr = now.toLocaleString('en-US', { timeZone: 'UTC' });
-  const nyStr = now.toLocaleString('en-US', { timeZone: 'America/New_York' });
-  return Math.round((new Date(nyStr).getTime() - new Date(utcStr).getTime()) / 1000);
-}
-
-/** Shift a UTC unix timestamp (seconds) to display as NY time in the chart */
-function toNYTimestamp(utcSeconds: number): number {
-  return utcSeconds + getNYOffset();
-}
-
 async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | null> {
   const { interval, range: r } = getYahooParams(range);
 
@@ -53,18 +40,15 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
     const timestamps: number[] = result.timestamp;
     const quotes = result.indicators?.quote?.[0];
     const closes: (number | null)[] = quotes?.close;
-    const highs: (number | null)[] = quotes?.high;
-    const lows: (number | null)[] = quotes?.low;
     if (!timestamps || !closes) return null;
 
     const points: GoldPrice[] = [];
     for (let i = 0; i < timestamps.length; i++) {
       const close = closes[i];
-      const high = highs?.[i];
-      const low = lows?.[i];
       if (close != null && close > 0) {
         points.push({
-          timestamp: toNYTimestamp(timestamps[i]) * 1000,
+          // Yahoo returns UTC unix seconds — keep them as UTC ms
+          timestamp: timestamps[i] * 1000,
           price: Math.round((close / OZ_TO_GRAM) * 100) / 100,
         });
       }
@@ -132,10 +116,10 @@ export function useGoldPrice() {
       if (historical && historical.length > 0) {
         // Append current live price as the last data point
         if (price && price > 0) {
-          const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
+          const nowMs = Date.now();
           const lastHistTs = historical[historical.length - 1].timestamp;
-          if (nyTs > lastHistTs) {
-            historical.push({ timestamp: nyTs, price });
+          if (nowMs > lastHistTs) {
+            historical.push({ timestamp: nowMs, price });
           } else {
             historical[historical.length - 1].price = price;
           }
@@ -154,12 +138,12 @@ export function useGoldPrice() {
     const price = await fetchCurrentPrice();
     if (price) {
       setCurrentPrice(price);
-      const nyTs = toNYTimestamp(Math.floor(Date.now() / 1000)) * 1000;
+      const nowMs = Date.now();
       // Update last point's price in-place for real-time tail
       setPrices(prev => {
         if (prev.length === 0) return prev;
         const last = prev[prev.length - 1];
-        return [...prev.slice(0, -1), { ...last, timestamp: nyTs, price }];
+        return [...prev.slice(0, -1), { ...last, timestamp: nowMs, price }];
       });
       setLastUpdated(new Date());
     }
