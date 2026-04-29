@@ -55,28 +55,7 @@ Deno.serve(async (req) => {
     }
 
     if (mode === 'quote') {
-      // Use TradingView scanner API for real-time gold price (TVC:GOLD, US$/OZ)
-      try {
-        const res = await fetch('https://scanner.tradingview.com/cfd/scan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            symbols: { tickers: ['TVC:GOLD'] },
-            columns: ['close', 'open', 'high', 'low', 'change'],
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const price = data?.data?.[0]?.d?.[0]; // close price
-          if (typeof price === 'number' && price > 0) {
-            return new Response(JSON.stringify({ price }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-        }
-      } catch { /* fallback below */ }
-
-      // Fallback: Yahoo Finance GC=F
+      // Primary: Yahoo Finance GC=F (COMEX gold futures) — matches mainstream financial sites
       try {
         const res = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1m&range=1d', {
           headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
@@ -91,7 +70,28 @@ Deno.serve(async (req) => {
             });
           }
         }
-      } catch { /* fallback below */ }
+      } catch { /* fallback */ }
+
+      // Fallback: TradingView TVC:GOLD (spot)
+      try {
+        const res = await fetch('https://scanner.tradingview.com/cfd/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            symbols: { tickers: ['TVC:GOLD'] },
+            columns: ['close'],
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const price = data?.data?.[0]?.d?.[0];
+          if (typeof price === 'number' && price > 0) {
+            return new Response(JSON.stringify({ price }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+      } catch { /* fall through */ }
 
       return new Response(JSON.stringify({ error: 'Failed to fetch gold price' }), {
         status: 502,
