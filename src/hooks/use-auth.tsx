@@ -15,17 +15,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    console.log('[AUTH] AuthProvider started');
+
+    const initializeAuth = async () => {
+      console.log('[AUTH] Getting session...');
+
+      const { data, error } = await supabase.auth.getSession();
+
+      console.log('[AUTH] Session:', data.session ? 'EXISTS' : 'NULL');
+      console.log('[AUTH] Error:', error);
+
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    };
+
+    initializeAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(
+        '[AUTH] Event:',
+        event,
+        '| Session:',
+        session ? 'EXISTS' : 'NULL'
+      );
+
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
@@ -41,6 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+
+  if (!ctx) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+
   return ctx;
 }
