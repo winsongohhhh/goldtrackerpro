@@ -18,16 +18,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[AUTH] AuthProvider started');
 
     const initializeAuth = async () => {
-      console.log('[AUTH] Getting session...');
+  console.log('[AUTH] Getting session...');
 
-      const { data, error } = await supabase.auth.getSession();
+  try {
+    const url = new URL(window.location.href);
 
-      console.log('[AUTH] Session:', data.session ? 'EXISTS' : 'NULL');
-      console.log('[AUTH] Error:', error);
+    console.log('[AUTH] Current URL:', window.location.href);
+    console.log('[AUTH] Has code:', url.searchParams.has('code'));
+    console.log('[AUTH] Has error:', url.searchParams.has('error'));
+    console.log(
+      '[AUTH] Error description:',
+      url.searchParams.get('error_description')
+    );
 
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    };
+    const { data, error } = await supabase.auth.getSession();
+
+    console.log('[AUTH] Session:', data.session ? 'EXISTS' : 'NULL');
+
+    if (error) {
+      console.error('[AUTH] getSession error:', error);
+    } else {
+      console.log('[AUTH] getSession error: NONE');
+    }
+
+    setUser(data.session?.user ?? null);
+  } catch (err) {
+    console.error('[AUTH] initializeAuth exception:', err);
+    setUser(null);
+  } finally {
+    setLoading(false);
+  }
+};
 
     initializeAuth();
 
