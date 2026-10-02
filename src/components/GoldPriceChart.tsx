@@ -4,9 +4,14 @@ import type { GoldPrice, Currency, WeightUnit } from '@/lib/gold-types';
 import type { TimeRange } from '@/hooks/use-gold-price';
 import { priceForUnit, formatCurrency } from '@/lib/gold-types';
 import { useI18n } from '@/lib/i18n';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   prices: GoldPrice[];
+  currentPrice?: number;
+  lastUpdated?: Date;
+  onRefresh?: () => void;
   loading: boolean;
   convert: (usd: number, to: Currency) => number;
   displayCurrency: Currency;
@@ -17,11 +22,25 @@ interface Props {
 
 const TIME_RANGES: TimeRange[] = ['7D', '1M', '6M', '1Y', 'ALL'];
 
-export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit, timeRange, onTimeRangeChange }: Props) {
+export function GoldPriceChart({
+  prices,
+  currentPrice,
+  lastUpdated,
+  onRefresh,
+  loading,
+  convert,
+  displayCurrency,
+  unit,
+  timeRange,
+  onTimeRangeChange,
+}: Props) {
   const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<any> | null>(null);
+
+  const unitLabel = unit === 'oz' ? 'oz' : 'g';
+  const displaySpotPrice = currentPrice ? priceForUnit(convert(currentPrice, displayCurrency), unit) : 0;
 
   const data = useMemo(() => {
     const mapped = prices
@@ -37,7 +56,7 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
       .filter(d => d.value != null && isFinite(d.value) && d.value > 0 && d.time > 0)
       .sort((a, b) => a.time - b.time);
 
-    // Deduplicate by timestamp — lightweight-charts crashes on duplicates
+    // Deduplicate by timestamp
     const seen = new Set<number>();
     return mapped.filter(d => {
       if (seen.has(d.time)) return false;
@@ -53,25 +72,25 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
     const chart = createChart(containerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: 'hsl(220, 10%, 50%)',
+        textColor: 'rgba(255, 255, 255, 0.4)',
         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
-        fontSize: 11,
+        fontSize: 10,
       },
       grid: {
-        vertLines: { color: 'hsla(220, 15%, 18%, 0.5)' },
-        horzLines: { color: 'hsla(220, 15%, 18%, 0.5)' },
+        vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: 'hsla(43, 80%, 55%, 0.3)', width: 1, style: 2 },
-        horzLine: { color: 'hsla(43, 80%, 55%, 0.3)', width: 1, style: 2 },
+        vertLine: { color: 'rgba(243, 186, 47, 0.3)', width: 1, style: 2 },
+        horzLine: { color: 'rgba(243, 186, 47, 0.3)', width: 1, style: 2 },
       },
       rightPriceScale: {
-        borderColor: 'hsla(220, 15%, 18%, 0.5)',
-        scaleMargins: { top: 0.1, bottom: 0.1 },
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+        scaleMargins: { top: 0.12, bottom: 0.12 },
       },
       timeScale: {
-        borderColor: 'hsla(220, 15%, 18%, 0.5)',
+        borderColor: 'rgba(255, 255, 255, 0.06)',
         timeVisible: timeRange === '7D',
         secondsVisible: false,
         fixLeftEdge: true,
@@ -82,12 +101,12 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
     });
 
     const series = chart.addSeries(AreaSeries, {
-      lineColor: 'hsl(43, 80%, 55%)',
-      topColor: 'hsla(43, 80%, 55%, 0.3)',
-      bottomColor: 'hsla(43, 80%, 55%, 0.02)',
+      lineColor: '#F3BA2F',
+      topColor: 'rgba(243, 186, 47, 0.28)',
+      bottomColor: 'rgba(243, 186, 47, 0.01)',
       lineWidth: 2,
-      crosshairMarkerBackgroundColor: 'hsl(43, 80%, 55%)',
-      crosshairMarkerBorderColor: 'hsl(220, 20%, 7%)',
+      crosshairMarkerBackgroundColor: '#F3BA2F',
+      crosshairMarkerBorderColor: '#13161B',
       crosshairMarkerRadius: 4,
       priceFormat: {
         type: 'custom',
@@ -118,7 +137,6 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
   useEffect(() => {
     if (seriesRef.current && data.length > 0) {
       seriesRef.current.setData(data);
-      // Update price format when currency changes
       seriesRef.current.applyOptions({
         priceFormat: {
           type: 'custom',
@@ -130,34 +148,88 @@ export function GoldPriceChart({ prices, loading, convert, displayCurrency, unit
   }, [data, displayCurrency]);
 
   return (
-    <div className="space-y-3">
-      {/* Time range selector */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        {TIME_RANGES.map(r => (
-          <button
-            key={r}
-            onClick={() => onTimeRangeChange(r)}
-            className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap
-              ${r === timeRange
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-              }`}
-          >
-            {r}
-          </button>
-        ))}
+    <section
+      aria-label={t.market}
+      className="bg-[#13161B] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 h-full flex flex-col justify-between"
+    >
+      {/* ── Market Header Bar ───────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        {/* Left: Section Label & Spot Price */}
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+            <span className="text-xs text-muted-foreground font-medium">
+              {t.marketCondition}
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/25">
+              {t.liveGoldPrice}
+            </span>
+          </div>
+
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl sm:text-4xl font-bold tracking-tight text-white tabular-nums">
+              {displaySpotPrice > 0 ? formatCurrency(displaySpotPrice, displayCurrency) : '—'}
+            </span>
+            <span className="text-xs text-muted-foreground font-medium">
+              {displayCurrency} / {unitLabel}
+            </span>
+          </div>
+        </div>
+
+        {/* Right: Time Range Selector, Refresh, & Timestamp */}
+        <div className="flex flex-col items-start sm:items-end gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Time range pills */}
+            <div className="flex items-center bg-[#0E1115] border border-white/[0.04] rounded-lg p-0.5 gap-0.5">
+              {TIME_RANGES.map(r => (
+                <button
+                  key={r}
+                  onClick={() => onTimeRangeChange(r)}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                    r === timeRange
+                      ? 'bg-[#F3BA2F] text-black shadow-sm'
+                      : 'text-muted-foreground hover:text-white hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            {/* Refresh button */}
+            {onRefresh && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onRefresh}
+                className="h-8 w-8 text-muted-foreground hover:text-white hover:bg-white/[0.04] rounded-lg"
+                title={t.updated}
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
+
+          {lastUpdated && (
+            <span className="text-[10px] text-muted-foreground tabular-nums font-mono">
+              {lastUpdated.toLocaleTimeString('zh-CN')}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Chart */}
-      <div className="relative">
+      {/* ── Chart Viewport ─────────────────────────────────── */}
+      <div className="relative pt-2">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-card/80 backdrop-blur-sm rounded-lg">
-            <div className="text-muted-foreground text-sm">{t.loading}</div>
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-[#13161B]/80 backdrop-blur-sm rounded-xl">
+            <div className="text-muted-foreground text-xs">{t.loading}</div>
           </div>
         )}
-        <div ref={containerRef} className="h-[400px] w-full" />
-        <div className="text-[10px] text-muted-foreground text-right mt-1 font-mono">Local Time</div>
+        <div ref={containerRef} className="h-[280px] sm:h-[320px] w-full" />
+        <div className="text-[10px] text-muted-foreground/60 text-right mt-1 font-mono">
+          Local Time
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

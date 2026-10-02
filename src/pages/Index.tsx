@@ -8,12 +8,12 @@ import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { useTrades } from '@/hooks/use-trades';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/hooks/use-auth';
-import { RefreshCw, Globe, LogOut } from 'lucide-react';
+import { Globe, LogOut } from 'lucide-react';
 import { GoldAdvisorChat } from '@/components/GoldAdvisorChat';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Currency, WeightUnit } from '@/lib/gold-types';
-import { formatCurrency, priceForUnit } from '@/lib/gold-types';
+import { GoldBarIcon } from '@/components/GoldBarIcon';
 
 const Index = () => {
   const { prices, currentPrice, loading, lastUpdated, refetch, timeRange, setTimeRange } = useGoldPrice();
@@ -22,148 +22,159 @@ const Index = () => {
   const { t, lang, setLang } = useI18n();
   const { signOut } = useAuth();
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
-  const [unit, setUnit] = useState<WeightUnit>('oz');
-
-  const displayPrice = priceForUnit(convert(currentPrice, displayCurrency), unit);
-  const unitLabel = unit === 'oz' ? '/oz' : '/g';
+  const [unit, setUnit] = useState<WeightUnit>('g');
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        {/* Header */}
-        <div className="space-y-2">
-          {/* Row 1: Title + Price + Refresh */}
-          <div className="flex items-end justify-between">
-            <h1 className="text-2xl font-semibold tracking-tight leading-none">
-              Gold Tracker Pro
-            </h1>
-            <div className="flex items-end gap-1.5">
-              {currentPrice > 0 && (
-                <div className="text-right">
-                  <div className="text-[10px] text-muted-foreground text-right mb-0.5">{displayCurrency}{unitLabel}</div>
-                  <div className="font-mono text-2xl font-semibold text-primary tabular-nums leading-none">
-                    {formatCurrency(displayPrice, displayCurrency)}
-                  </div>
-                </div>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={refetch}
-                className="text-muted-foreground hover:text-foreground h-7 w-7"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </Button>
+    <div className="min-h-screen bg-[#0B0D0F] text-foreground">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+
+        {/* ══════════════════════════════════════════════════
+            STITCH TOP HEADER
+        ══════════════════════════════════════════════════ */}
+        <header className="flex items-center justify-between py-2 border-b border-white/[0.04] pb-4">
+          {/* Left: Brand Icon + Title + Subtitle */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm flex-shrink-0">
+              <GoldBarIcon className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-base sm:text-lg font-bold tracking-tight text-white leading-none">
+                  Gold Tracker <span className="text-amber-400">Pro</span>
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1 hidden sm:block leading-none">
+                {t.appSubtitle}
+              </p>
             </div>
           </div>
 
-
-          {/* Row 2: Controls - right aligned */}
-          <div className="flex items-center justify-end gap-2 my-[12px]">
+          {/* Right: Controls (Language, Unit Toggle, Currency, Sign Out) */}
+          <div className="flex items-center gap-2">
+            {/* Language */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setLang(lang === 'cn' ? 'en' : 'cn')}
-              className="text-muted-foreground hover:text-foreground h-8 gap-1 text-xs px-2"
+              className="text-muted-foreground hover:text-white h-8 gap-1 text-xs px-2.5 rounded-full bg-[#13161B] border border-white/[0.06]"
             >
               <Globe className="w-3.5 h-3.5" />
-              {lang === 'cn' ? 'EN' : '中文'}
+              <span>{lang === 'cn' ? 'EN' : '中文'}</span>
             </Button>
 
-            <Select value={unit} onValueChange={v => setUnit(v as WeightUnit)}>
-              <SelectTrigger className="w-16 bg-secondary border-border text-xs h-8 px-2">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="g">g</SelectItem>
-                <SelectItem value="oz">oz</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Unit Segmented Control (Stitch design has active in solid gold) */}
+            <div
+              className="flex items-center bg-[#13161B] border border-white/[0.06] rounded-full p-0.5"
+              role="group"
+              aria-label={t.unit}
+            >
+              <button
+                onClick={() => setUnit('oz')}
+                aria-pressed={unit === 'oz'}
+                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                  unit === 'oz'
+                    ? 'bg-[#F3BA2F] text-black shadow-sm'
+                    : 'text-muted-foreground hover:text-white'
+                }`}
+              >
+                oz
+              </button>
+              <button
+                onClick={() => setUnit('g')}
+                aria-pressed={unit === 'g'}
+                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                  unit === 'g'
+                    ? 'bg-[#F3BA2F] text-black shadow-sm'
+                    : 'text-muted-foreground hover:text-white'
+                }`}
+              >
+                g
+              </button>
+            </div>
 
+            {/* Currency Select */}
             <Select value={displayCurrency} onValueChange={v => setDisplayCurrency(v as Currency)}>
-              <SelectTrigger className="w-[68px] bg-secondary border-border text-xs h-8 px-2">
+              <SelectTrigger className="w-[78px] bg-[#13161B] border border-white/[0.06] text-xs text-white h-8 px-2.5 rounded-full focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="CNY">CNY</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
-                <SelectItem value="MYR">MYR</SelectItem>
-                <SelectItem value="SGD">SGD</SelectItem>
+                <SelectItem value="USD">$ USD</SelectItem>
+                <SelectItem value="CNY">¥ CNY</SelectItem>
+                <SelectItem value="EUR">€ EUR</SelectItem>
+                <SelectItem value="MYR">RM MYR</SelectItem>
+                <SelectItem value="SGD">S$ SGD</SelectItem>
               </SelectContent>
             </Select>
 
+            {/* Sign Out */}
             <Button
               variant="ghost"
               size="icon"
               onClick={signOut}
-              className="text-muted-foreground hover:text-foreground h-8 w-8"
+              className="text-muted-foreground hover:text-white h-8 w-8 rounded-full bg-[#13161B] border border-white/[0.06]"
               title={lang === 'cn' ? '退出登录' : 'Sign Out'}
             >
               <LogOut className="w-3.5 h-3.5" />
             </Button>
           </div>
+        </header>
+
+        {/* ══════════════════════════════════════════════════
+            STITCH BENTO GRID LAYOUT
+            Desktop: 2 Columns (7 cols left, 5 cols right)
+            Mobile: 1 Column stack
+        ══════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* Left Column: Portfolio Overview & Gold Market Chart */}
+          <div className="lg:col-span-7 space-y-5">
+            <TradeSummary
+              trades={trades}
+              currentPrice={currentPrice}
+              convert={convert}
+              displayCurrency={displayCurrency}
+              unit={unit}
+            />
+
+            <GoldPriceChart
+              prices={prices}
+              currentPrice={currentPrice}
+              lastUpdated={lastUpdated}
+              onRefresh={refetch}
+              loading={loading}
+              convert={convert}
+              displayCurrency={displayCurrency}
+              unit={unit}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+            />
+          </div>
+
+          {/* Right Column: Add Trade & Recent Transactions */}
+          <div className="lg:col-span-5 space-y-5">
+            <AddTradeForm
+              onAdd={addTrade}
+              currentPrice={currentPrice}
+              convert={convert}
+              displayCurrency={displayCurrency}
+              unit={unit}
+            />
+
+            <TradeList
+              trades={trades}
+              currentPrice={currentPrice}
+              onDelete={deleteTrade}
+              convert={convert}
+              displayCurrency={displayCurrency}
+              unit={unit}
+            />
+          </div>
         </div>
 
-        {/* Price Chart */}
-        <section className="bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
-              {t.priceChart}
-            </h2>
-            <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
-              {t.updated}: {lastUpdated.toLocaleTimeString('zh-CN')}
-            </span>
-          </div>
-          <GoldPriceChart
-            prices={prices}
-            loading={loading}
-            convert={convert}
-            displayCurrency={displayCurrency}
-            unit={unit}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-          />
-        </section>
-
-        {/* Summary */}
-        <TradeSummary
-          trades={trades}
-          currentPrice={currentPrice}
-          convert={convert}
-          displayCurrency={displayCurrency}
-          unit={unit}
-        />
-
-        {/* Add Trade */}
-        <section className="bg-card rounded-xl border border-border p-5">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-4">
-            {t.addTrade}
-          </h2>
-          <AddTradeForm
-            onAdd={addTrade}
-            currentPrice={currentPrice}
-            convert={convert}
-            displayCurrency={displayCurrency}
-            unit={unit}
-          />
-        </section>
-
-        {/* Trade List */}
-        <section className="bg-card rounded-xl border border-border p-5">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-4">
-            {t.tradeList}
-          </h2>
-          <TradeList
-            trades={trades}
-            currentPrice={currentPrice}
-            onDelete={deleteTrade}
-            convert={convert}
-            displayCurrency={displayCurrency}
-            unit={unit}
-          />
-        </section>
       </div>
+
+      {/* ══════════════════════════════════════════════════
+          GOLD ADVISOR LAUNCHER & CHAT
+      ══════════════════════════════════════════════════ */}
       <GoldAdvisorChat currentPrice={currentPrice} />
     </div>
   );
