@@ -8,7 +8,7 @@ import { useI18n } from '@/lib/i18n';
 interface Props {
   trades: GoldTrade[];
   currentPrice: number; // USD per gram
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<{ success: boolean }>;
   convert: (usd: number, to: Currency) => number;
   displayCurrency: Currency;
   unit: WeightUnit;

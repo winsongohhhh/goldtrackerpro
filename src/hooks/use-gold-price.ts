@@ -150,9 +150,9 @@ export function useGoldPrice() {
   }, [timeRange]);
 
   useEffect(() => {
-    // Start fetching immediately, then every second
+    // Start fetching immediately, then every 10 seconds
     fetchPrice();
-    const interval = setInterval(fetchPrice, 1000);
+    const interval = setInterval(fetchPrice, 10_000);
     return () => clearInterval(interval);
   }, [fetchPrice]);
 

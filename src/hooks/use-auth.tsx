@@ -15,53 +15,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('[AUTH] AuthProvider started');
-
     const initializeAuth = async () => {
-  console.log('[AUTH] Getting session...');
-
-  try {
-    const url = new URL(window.location.href);
-
-    console.log('[AUTH] Current URL:', window.location.href);
-    console.log('[AUTH] Has code:', url.searchParams.has('code'));
-    console.log('[AUTH] Has error:', url.searchParams.has('error'));
-    console.log(
-      '[AUTH] Error description:',
-      url.searchParams.get('error_description')
-    );
-
-    const { data, error } = await supabase.auth.getSession();
-
-    console.log('[AUTH] Session:', data.session ? 'EXISTS' : 'NULL');
-
-    if (error) {
-      console.error('[AUTH] getSession error:', error);
-    } else {
-      console.log('[AUTH] getSession error: NONE');
-    }
-
-    setUser(data.session?.user ?? null);
-  } catch (err) {
-    console.error('[AUTH] initializeAuth exception:', err);
-    setUser(null);
-  } finally {
-    setLoading(false);
-  }
-};
+      try {
+        const { data } = await supabase.auth.getSession();
+        setUser(data.session?.user ?? null);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     initializeAuth();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(
-        '[AUTH] Event:',
-        event,
-        '| Session:',
-        session ? 'EXISTS' : 'NULL'
-      );
-
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });

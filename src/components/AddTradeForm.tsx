@@ -8,7 +8,7 @@ import { Plus } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface Props {
-  onAdd: (trade: Omit<GoldTrade, 'id'>) => void;
+  onAdd: (trade: Omit<GoldTrade, 'id'>) => Promise<{ success: boolean }>;
   currentPrice: number; // USD per gram
   convert: (usd: number, to: Currency) => number;
   displayCurrency: Currency;
@@ -22,7 +22,7 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
   const [currency, setCurrency] = useState<Currency>(displayCurrency);
   const [tradeUnit, setTradeUnit] = useState<WeightUnit>(unit);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const p = parseFloat(price);
     const q = parseFloat(quantity);
@@ -32,12 +32,17 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
     const pricePerGram = tradeUnit === 'oz' ? p / 31.1035 : p;
     const quantityGrams = tradeUnit === 'oz' ? q * 31.1035 : q;
 
-    onAdd({
+    const result = await onAdd({
       date: new Date().toISOString().split('T')[0],
       price: Math.round(pricePerGram * 100) / 100,
       quantity: Math.round(quantityGrams * 100) / 100,
       currency,
     });
+
+    if (result && result.success === false) {
+      return;
+    }
+    
     setPrice('');
     setQuantity('');
   };

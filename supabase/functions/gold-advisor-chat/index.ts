@@ -179,16 +179,27 @@ function extractSearchQuery(userMessage: string, lang: string): string {
 function convertMessages(
   messages: Array<{ role: string; content: string }>,
 ) {
-  return messages
-    .filter((message) => message.role === "user" || message.role === "assistant")
-    .map((message) => ({
-      role: message.role === "assistant" ? "model" : "user",
-      parts: [
-        {
-          text: message.content,
-        },
-      ],
-    }));
+  const conversation = messages.filter(
+    (message) => message.role === "user" || message.role === "assistant",
+  );
+
+  // Gemini contents must start with a user turn. The frontend welcome
+  // assistant message is UI-only and must not lead the conversation.
+  const firstUserIndex = conversation.findIndex(
+    (message) => message.role === "user",
+  );
+
+  const turns =
+    firstUserIndex === -1 ? [] : conversation.slice(firstUserIndex);
+
+  return turns.map((message) => ({
+    role: message.role === "assistant" ? "model" : "user",
+    parts: [
+      {
+        text: message.content,
+      },
+    ],
+  }));
 }
 
 function createOpenAIChunk(content: string) {
