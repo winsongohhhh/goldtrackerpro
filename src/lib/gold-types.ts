@@ -47,3 +47,18 @@ export function quantityForUnit(grams: number, unit: WeightUnit): number {
 export function quantityToGrams(value: number, unit: WeightUnit): number {
   return unit === 'oz' ? value * OZ_TO_GRAM : value;
 }
+
+/** Compact unit label used in prices and quantities outside unit selectors. */
+export function weightUnitLabel(unit: WeightUnit): string {
+  return unit;
+}
+
+/** Full, explicit unit names reserved for unit selectors. */
+export function weightUnitOptionLabel(unit: WeightUnit): string {
+  return unit === 'oz' ? 'Ounces (oz)' : 'Grams (g)';
+}
+
+/** Explicit price basis for a selected currency and weight unit. */
+export function priceBasisLabel(currency: Currency, unit: WeightUnit): string {
+  return `${currency}/${unit}`;
+}

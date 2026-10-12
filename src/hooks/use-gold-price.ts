@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import type { GoldPrice } from '@/lib/gold-types';
 
 const OZ_TO_GRAM = 31.1035;
+export const PRICE_STALE_AFTER_MS = 30_000;
 
 export type TimeRange = '7D' | '1M' | '6M' | '1Y' | 'ALL';
+export type MarketFreshness = 'live' | 'stale' | 'unavailable';
 
 interface YahooParams {
   interval: string;
@@ -13,11 +15,21 @@ interface YahooParams {
 function getYahooParams(range: TimeRange): YahooParams {
   switch (range) {
     case '7D':  return { interval: '15m', range: '1mo' };
-    case '1M':  return { interval: '1h',  range: '1mo' };
-    case '6M':  return { interval: '1d',  range: '6mo' };
-    case '1Y':  return { interval: '1d',  range: '1y' };
+    case '1M':  return { interval: '1h', range: '1mo' };
+    case '6M':  return { interval: '1d', range: '6mo' };
+    case '1Y':  return { interval: '1d', range: '1y' };
     case 'ALL': return { interval: '1mo', range: 'max' };
   }
+}
+
+export function getMarketFreshness(
+  hasData: boolean,
+  lastQuoteUpdated: Date | null,
+  now = Date.now(),
+): MarketFreshness {
+  if (!hasData) return 'unavailable';
+  if (!lastQuoteUpdated || now - lastQuoteUpdated.getTime() > PRICE_STALE_AFTER_MS) return 'stale';
+  return 'live';
 }
 
 async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | null> {
@@ -25,7 +37,6 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
 
   try {
     const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/yahoo-finance?interval=${interval}&range=${r}`;
-    
     const res = await fetch(fnUrl, {
       headers: {
         'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -47,24 +58,20 @@ async function fetchHistoricalPrices(range: TimeRange): Promise<GoldPrice[] | nu
       const close = closes[i];
       if (close != null && close > 0) {
         points.push({
-          // Yahoo returns UTC unix seconds — keep them as UTC ms
           timestamp: timestamps[i] * 1000,
           price: Math.round((close / OZ_TO_GRAM) * 100) / 100,
         });
       }
     }
-    // Filter to exact range for 7D
     if (range === '7D' && points.length > 0) {
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       const filtered = points.filter(p => p.timestamp >= sevenDaysAgo);
       if (filtered.length > 0) return filtered;
     }
-    if (points.length > 0) return points;
+    return points.length > 0 ? points : null;
   } catch {
-    // fallback
+    return null;
   }
-
-  return null;
 }
 
 async function fetchCurrentPrice(): Promise<number | null> {
@@ -74,14 +81,16 @@ async function fetchCurrentPrice(): Promise<number | null> {
       headers: { 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
       cache: 'no-store',
     });
-    if (res.ok) {
-      const data = await res.json();
-      const price = data?.price;
-      if (typeof price === 'number' && price > 0) {
-        return Math.round((price / OZ_TO_GRAM) * 100) / 100;
-      }
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const price = data?.price;
+    if (typeof price === 'number' && price > 0) {
+      return Math.round((price / OZ_TO_GRAM) * 100) / 100;
     }
-  } catch { /* fallback */ }
+  } catch {
+    return null;
+  }
   return null;
 }
 
@@ -89,72 +98,77 @@ export function useGoldPrice() {
   const [prices, setPrices] = useState<GoldPrice[]>([]);
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [lastQuoteUpdated, setLastQuoteUpdated] = useState<Date | null>(null);
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const [timeRange, setTimeRange] = useState<TimeRange>('7D');
-
-  // Fetch current price immediately on mount to avoid delay
-  useEffect(() => {
-    fetchCurrentPrice().then(price => {
-      if (price) setCurrentPrice(price);
-    });
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
     async function loadHistory() {
       setLoading(true);
-
-      // Fetch current price and history in parallel for instant display
       const [historical, price] = await Promise.all([
         fetchHistoricalPrices(timeRange),
         fetchCurrentPrice(),
       ]);
       if (cancelled) return;
 
-      if (price) setCurrentPrice(price);
+      const fetchedAt = new Date();
+      if (price !== null) {
+        setCurrentPrice(price);
+        setLastQuoteUpdated(fetchedAt);
+      }
 
       if (historical && historical.length > 0) {
-        // Append current live price as the last data point
-        if (price && price > 0) {
-          const nowMs = Date.now();
-          const lastHistTs = historical[historical.length - 1].timestamp;
+        const points = [...historical];
+        if (price !== null) {
+          const nowMs = fetchedAt.getTime();
+          const lastHistTs = points[points.length - 1].timestamp;
           if (nowMs > lastHistTs) {
-            historical.push({ timestamp: nowMs, price });
+            points.push({ timestamp: nowMs, price });
           } else {
-            historical[historical.length - 1].price = price;
+            points[points.length - 1] = { ...points[points.length - 1], price };
           }
         }
-        setPrices(historical);
-        if (!price) setCurrentPrice(historical[historical.length - 1].price);
+        setPrices(points);
+        if (price === null) setCurrentPrice(points[points.length - 1].price);
       }
+
       setLoading(false);
-      setLastUpdated(new Date());
     }
-    loadHistory();
+    void loadHistory();
     return () => { cancelled = true; };
   }, [timeRange]);
 
   const fetchPrice = useCallback(async () => {
     const price = await fetchCurrentPrice();
-    if (price) {
-      setCurrentPrice(price);
-      const nowMs = Date.now();
-      // Update last point's price in-place for real-time tail
-      setPrices(prev => {
-        if (prev.length === 0) return prev;
-        const last = prev[prev.length - 1];
-        return [...prev.slice(0, -1), { ...last, timestamp: nowMs, price }];
-      });
-      setLastUpdated(new Date());
-    }
-  }, [timeRange]);
+    if (price === null) return;
+
+    const fetchedAt = new Date();
+    const nowMs = fetchedAt.getTime();
+    setCurrentPrice(price);
+    setLastQuoteUpdated(fetchedAt);
+    setPrices(prev => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      return [...prev.slice(0, -1), { ...last, timestamp: nowMs, price }];
+    });
+  }, []);
 
   useEffect(() => {
-    // Start fetching immediately, then every 10 seconds
-    fetchPrice();
-    const interval = setInterval(fetchPrice, 10_000);
+    const interval = setInterval(() => { void fetchPrice(); }, 10_000);
     return () => clearInterval(interval);
   }, [fetchPrice]);
 
-  return { prices, currentPrice, loading, lastUpdated, refetch: fetchPrice, timeRange, setTimeRange };
+  useEffect(() => {
+    const interval = setInterval(() => setClockNow(Date.now()), 10_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const freshness = getMarketFreshness(
+    currentPrice > 0 || prices.length > 0,
+    lastQuoteUpdated,
+    clockNow,
+  );
+
+  return { prices, currentPrice, loading, lastUpdated: lastQuoteUpdated, freshness, refetch: fetchPrice, timeRange, setTimeRange };
 }

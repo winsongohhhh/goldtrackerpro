@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
-import { Mail, Lock, Eye, EyeOff, Globe, ArrowRight } from 'lucide-react';
-import { GoldBarIcon } from '@/components/GoldBarIcon';
+import { Mail, Lock, Eye, EyeOff, Globe, ArrowRight, Loader2 } from 'lucide-react';
+import { GoldAppIcon } from '@/components/GoldAppIcon';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -34,8 +34,8 @@ export default function Auth() {
         if (error) throw error;
         toast.success(lang === 'cn' ? '注册成功！请查收验证邮件。' : 'Signed up! Please check your email to verify.');
       }
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : (lang === 'cn' ? '认证失败，请重试。' : 'Authentication failed. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -56,16 +56,14 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0D0F] text-foreground flex flex-col justify-between p-4 sm:p-6 selection:bg-amber-500/30 selection:text-amber-200">
+    <div className="min-h-screen bg-[#0B0D0F] text-foreground flex flex-col justify-between p-4 sm:p-6 selection:bg-[#E5A93C]/30 selection:text-amber-200">
       {/* ── Top Bar ─────────────────────────────────────────── */}
       <header className="flex items-center justify-between max-w-7xl mx-auto w-full pt-1">
-        {/* Left: Brand Mark with Gold Bullion Icon */}
+        {/* Left: Brand Mark */}
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
-            <GoldBarIcon className="w-4 h-4" />
-          </div>
-          <span className="text-base font-bold tracking-tight text-white leading-none">
-            GoldTracker <span className="text-amber-400">Pro</span>
+          <GoldAppIcon size={32} />
+          <span className="text-sm font-semibold tracking-tight text-white leading-none">
+            Gold Tracker <span className="text-[#E5A93C]">Pro</span>
           </span>
         </div>
 
@@ -74,7 +72,7 @@ export default function Auth() {
           variant="ghost"
           size="sm"
           onClick={() => setLang(lang === 'cn' ? 'en' : 'cn')}
-          className="text-muted-foreground hover:text-white h-8 gap-1.5 text-xs px-3 rounded-full bg-[#13161B] border border-white/[0.06]"
+          className="text-muted-foreground hover:text-white h-11 gap-1.5 text-xs px-3 rounded-full bg-white/[0.06] border border-white/[0.08]"
         >
           <Globe className="w-3.5 h-3.5" />
           <span>{lang === 'cn' ? '中文 (简体)' : 'English'}</span>
@@ -83,9 +81,9 @@ export default function Auth() {
 
       {/* ── Center Login Box ─────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center py-10 w-full max-w-md mx-auto">
-        {/* Floating Gold Bullion Emblem */}
-        <div className="w-12 h-12 rounded-2xl bg-[#13161B] border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/5 mb-4">
-          <GoldBarIcon className="w-6 h-6" />
+        {/* Floating Minimalist Squircle Emblem */}
+        <div className="mb-4">
+          <GoldAppIcon size={64} />
         </div>
 
         {/* Title & Subtitle */}
@@ -98,13 +96,15 @@ export default function Auth() {
           </p>
         </div>
 
-        {/* Card Container */}
-        <div className="w-full bg-[#13161B] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-6 sm:p-8 space-y-4 shadow-2xl">
+        {/* Apple Glass Container */}
+        <div className="w-full apple-card p-6 sm:p-8 space-y-4">
           {/* Working Google OAuth Button */}
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="w-full h-11 rounded-xl bg-[#0E1115] hover:bg-white/[0.04] border border-white/[0.08] text-white text-xs font-medium flex items-center justify-center gap-2.5 transition-colors"
+            disabled={loading}
+            aria-busy={loading}
+            className="w-full h-11 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] text-white text-xs font-medium flex items-center justify-center gap-2.5 transition-all"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -118,10 +118,10 @@ export default function Auth() {
           {/* Divider */}
           <div className="relative py-2">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-white/[0.06]" />
+              <span className="w-full border-t border-white/[0.08]" />
             </div>
             <div className="relative flex justify-center text-[10px] uppercase">
-              <span className="bg-[#13161B] px-3 text-muted-foreground/60 tracking-wider">
+              <span className="bg-[#1C1C1E] px-3 text-muted-foreground/60 tracking-wider">
                 {t.orEmailPassword}
               </span>
             </div>
@@ -131,57 +131,63 @@ export default function Auth() {
           <form onSubmit={handleEmailAuth} className="space-y-3.5">
             {/* Email Field */}
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+              <label htmlFor="auth-email" className="text-[11px] text-muted-foreground mb-1 block font-medium">
                 {t.emailLabel}
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-muted-foreground/60 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <Input
+                  id="auth-email"
                   type="email"
                   placeholder="name@example.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
-                  className="bg-[#0E1115] border border-white/[0.08] rounded-xl h-11 pl-10 text-xs text-white placeholder:text-muted-foreground/40 focus:border-amber-500/50"
+                  className="bg-black/30 border border-white/[0.08] rounded-xl h-11 pl-10 text-xs text-white placeholder:text-muted-foreground/40 focus:border-[#E5A93C]/60"
                 />
               </div>
             </div>
 
             {/* Password Field */}
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+              <label htmlFor="auth-password" className="text-[11px] text-muted-foreground mb-1 block font-medium">
                 {t.passwordLabel}
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-muted-foreground/60 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <Input
+                  id="auth-password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="bg-[#0E1115] border border-white/[0.08] rounded-xl h-11 pl-10 pr-10 text-xs text-white placeholder:text-muted-foreground/40 focus:border-amber-500/50"
+                  className="bg-black/30 border border-white/[0.08] rounded-xl h-11 pl-10 pr-12 text-xs text-white placeholder:text-muted-foreground/40 focus:border-[#E5A93C]/60"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-white"
+                  aria-label={showPassword ? (lang === 'cn' ? '隐藏密码' : 'Hide password') : (lang === 'cn' ? '显示密码' : 'Show password')}
+                  aria-pressed={showPassword}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full inline-flex items-center justify-center text-muted-foreground/60 hover:text-white"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Solid Gold CTA Button */}
+            {/* Solid Apple Primary CTA Button */}
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-xl bg-[#F3BA2F] hover:bg-[#F3BA2F]/90 text-black font-bold text-xs flex items-center justify-center gap-2 transition-all mt-3 shadow-sm"
+              aria-busy={loading}
+              className="w-full h-11 rounded-xl apple-btn-primary text-xs flex items-center justify-center gap-2 transition-all mt-3"
             >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
               <span>
                 {loading
-                  ? '...'
+                  ? (lang === 'cn' ? '正在处理…' : 'Please wait…')
                   : isLogin
                     ? t.loginAction
                     : t.registerAction}
@@ -198,7 +204,7 @@ export default function Auth() {
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-xs text-amber-400 hover:text-amber-300 font-bold transition-colors"
+              className="min-h-11 px-2 py-2 text-xs text-[#E5A93C] hover:text-[#F5D285] font-semibold transition-colors"
             >
               {isLogin ? t.registerNow : t.signInNow} ›
             </button>
@@ -206,7 +212,7 @@ export default function Auth() {
         </div>
       </div>
 
-      {/* ── Page Footer: Minimal & Accurate ───────────────────── */}
+      {/* ── Page Footer ───────────────────────────────────────── */}
       <footer className="max-w-7xl mx-auto w-full pt-4 border-t border-white/[0.04] text-[11px] text-muted-foreground flex items-center justify-center">
         <span>© 2026 Gold Tracker Pro. {t.allRightsReserved}</span>
       </footer>

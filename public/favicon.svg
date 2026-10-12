@@ -1,5 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#0B0D0F"/>
-  <path d="M8 10C8.4 9.1 9.3 8.5 10.3 8.5H21.7C22.7 8.5 23.6 9.1 24 10L26.5 16H5.5L8 10Z" fill="#FCD34D"/>
-  <path d="M5.5 16H26.5L24.5 22C24.1 22.9 23.2 23.5 22.2 23.5H9.8C8.8 23.5 7.9 22.9 7.5 22L5.5 16Z" fill="#F3BA2F"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect x="1" y="1" width="30" height="30" rx="9" fill="#E5A93C" />
+  <text
+    x="16"
+    y="23"
+    text-anchor="middle"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    font-size="21"
+    font-weight="750"
+    fill="#151719"
+  >G</text>
 </svg>

@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { GoldPriceChart } from '@/components/GoldPriceChart';
-import { AddTradeForm } from '@/components/AddTradeForm';
 import { TradeList } from '@/components/TradeList';
 import { TradeSummary } from '@/components/TradeSummary';
 import { useGoldPrice } from '@/hooks/use-gold-price';
@@ -8,15 +7,26 @@ import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { useTrades } from '@/hooks/use-trades';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/hooks/use-auth';
-import { Globe, LogOut } from 'lucide-react';
+import { Globe, LogOut, Settings } from 'lucide-react';
 import { GoldAdvisorChat } from '@/components/GoldAdvisorChat';
+import { AddTradeForm } from '@/components/AddTradeForm';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import type { Currency, WeightUnit } from '@/lib/gold-types';
-import { GoldBarIcon } from '@/components/GoldBarIcon';
+import { weightUnitOptionLabel } from '@/lib/gold-types';
+import { GoldAppIcon } from '@/components/GoldAppIcon';
+
+const CURRENCY_OPTIONS: { value: Currency; label: string }[] = [
+  { value: 'USD', label: 'USD ($)' },
+  { value: 'MYR', label: 'MYR (RM)' },
+  { value: 'CNY', label: 'CNY (¥)' },
+  { value: 'EUR', label: 'EUR (€)' },
+  { value: 'SGD', label: 'SGD (S$)' },
+];
 
 const Index = () => {
-  const { prices, currentPrice, loading, lastUpdated, refetch, timeRange, setTimeRange } = useGoldPrice();
+  const { prices, currentPrice, loading, lastUpdated, freshness, refetch, timeRange, setTimeRange } = useGoldPrice();
   const { trades, addTrade, deleteTrade } = useTrades();
   const { convert } = useExchangeRates();
   const { t, lang, setLang } = useI18n();
@@ -24,109 +34,186 @@ const Index = () => {
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
   const [unit, setUnit] = useState<WeightUnit>('g');
 
+  const [chatOpen, setChatOpen] = useState(false);
+
+  const [scrollY, setScrollY] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      setScrollY(el.scrollTop);
+    };
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const inlineTitleOpacity = Math.min(1, Math.max(0, (scrollY - 20) / 35));
+
+  const LangToggle = () => (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => setLang(lang === 'cn' ? 'en' : 'cn')}
+      className="text-muted-foreground hover:text-white h-11 gap-1 text-xs px-3 rounded-full bg-white/[0.06] border border-white/[0.08]"
+    >
+      <Globe className="w-3.5 h-3.5" />
+      <span>{lang === 'cn' ? 'EN' : '中文'}</span>
+    </Button>
+  );
+
+  const UnitToggle = () => (
+    <div
+      className="flex items-center bg-white/[0.06] border border-white/[0.08] rounded-full p-0.5"
+      role="group"
+      aria-label={t.unit}
+    >
+      {(['oz', 'g'] as WeightUnit[]).map((u) => (
+        <button
+          key={u}
+          onClick={() => setUnit(u)}
+          aria-pressed={unit === u}
+          className={`min-h-10 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
+            unit === u
+              ? 'apple-btn-primary text-black shadow-sm'
+              : 'text-muted-foreground hover:text-white'
+          }`}
+        >
+          {weightUnitOptionLabel(u)}
+        </button>
+      ))}
+    </div>
+  );
+
+  const CurrencySelect = ({ fullWidth = false }: { fullWidth?: boolean }) => (
+    <Select value={displayCurrency} onValueChange={(v) => setDisplayCurrency(v as Currency)}>
+      <SelectTrigger
+        className={`${fullWidth ? 'w-full h-11' : 'w-auto min-w-[4.5rem] h-10'} bg-white/[0.06] border border-white/[0.08] text-xs text-white px-2.5 gap-1.5 rounded-full focus:ring-0`}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className="bg-[#1C1C1E] border-white/10 text-white">
+        {CURRENCY_OPTIONS.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   return (
-    <div className="min-h-screen bg-[#0B0D0F] text-foreground">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+    <div className="dashboard-viewport relative w-full flex flex-col bg-[#0B0D0F] text-foreground">
 
-        {/* ══════════════════════════════════════════════════
-            STITCH TOP HEADER
-        ══════════════════════════════════════════════════ */}
-        <header className="flex items-center justify-between py-2 border-b border-white/[0.04] pb-4">
-          {/* Left: Brand Icon + Title + Subtitle */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm flex-shrink-0">
-              <GoldBarIcon className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base sm:text-lg font-bold tracking-tight text-white leading-none">
-                  Gold Tracker <span className="text-amber-400">Pro</span>
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1 hidden sm:block leading-none">
-                {t.appSubtitle}
-              </p>
-            </div>
+      {/* ══════════════════════════════════════════════════
+          1. iOS TOP CHROME NAVIGATION BAR (44px + Safe Area) (§12)
+          No "Overview" or "Add Trade" buttons (§1)
+      ══════════════════════════════════════════════════ */}
+      <nav
+        className="apple-chrome fixed top-0 left-0 right-0 z-40 flex flex-col justify-end pt-[env(safe-area-inset-top,0px)]"
+        style={{
+          borderBottom: scrollY > 15 ? '0.5px solid rgba(255, 255, 255, 0.12)' : '0.5px solid transparent',
+          transition: 'border-color 200ms ease-out',
+        }}
+      >
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 h-[44px] flex items-center justify-between">
+          {/* Left: Compact Inline Brand Icon & Title (Fix 2) */}
+          <div className="flex items-center gap-2.5">
+            <GoldAppIcon size={26} hasGlow={false} />
+            <span className="text-sm font-semibold tracking-tight text-white leading-none">
+              Gold Tracker <span className="text-[#E5A93C]">Pro</span>
+            </span>
           </div>
 
-          {/* Right: Controls (Language, Unit Toggle, Currency, Sign Out) */}
+          {/* Right: Controls & Actions */}
           <div className="flex items-center gap-2">
-            {/* Language */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLang(lang === 'cn' ? 'en' : 'cn')}
-              className="text-muted-foreground hover:text-white h-8 gap-1 text-xs px-2.5 rounded-full bg-[#13161B] border border-white/[0.06]"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>{lang === 'cn' ? 'EN' : '中文'}</span>
-            </Button>
-
-            {/* Unit Segmented Control (Stitch design has active in solid gold) */}
-            <div
-              className="flex items-center bg-[#13161B] border border-white/[0.06] rounded-full p-0.5"
-              role="group"
-              aria-label={t.unit}
-            >
-              <button
-                onClick={() => setUnit('oz')}
-                aria-pressed={unit === 'oz'}
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
-                  unit === 'oz'
-                    ? 'bg-[#F3BA2F] text-black shadow-sm'
-                    : 'text-muted-foreground hover:text-white'
-                }`}
+            <div className="hidden sm:flex items-center gap-2">
+              <LangToggle />
+              <UnitToggle />
+              <CurrencySelect />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={signOut}
+                className="text-muted-foreground hover:text-white h-10 w-10 rounded-full bg-white/[0.06] border border-white/[0.08]"
+                title={lang === 'cn' ? '退出登录' : 'Sign Out'}
               >
-                oz
-              </button>
-              <button
-                onClick={() => setUnit('g')}
-                aria-pressed={unit === 'g'}
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
-                  unit === 'g'
-                    ? 'bg-[#F3BA2F] text-black shadow-sm'
-                    : 'text-muted-foreground hover:text-white'
-                }`}
-              >
-                g
-              </button>
+                <LogOut className="w-3.5 h-3.5" />
+              </Button>
             </div>
 
-            {/* Currency Select */}
-            <Select value={displayCurrency} onValueChange={v => setDisplayCurrency(v as Currency)}>
-              <SelectTrigger className="w-[78px] bg-[#13161B] border border-white/[0.06] text-xs text-white h-8 px-2.5 rounded-full focus:ring-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="USD">$ USD</SelectItem>
-                <SelectItem value="CNY">¥ CNY</SelectItem>
-                <SelectItem value="EUR">€ EUR</SelectItem>
-                <SelectItem value="MYR">RM MYR</SelectItem>
-                <SelectItem value="SGD">S$ SGD</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Sign Out */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={signOut}
-              className="text-muted-foreground hover:text-white h-8 w-8 rounded-full bg-[#13161B] border border-white/[0.06]"
-              title={lang === 'cn' ? '退出登录' : 'Sign Out'}
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </Button>
+            {/* Mobile Sheet Trigger */}
+            <div className="sm:hidden flex items-center">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-white h-11 w-11 rounded-full bg-white/[0.06] border border-white/[0.08]"
+                    aria-label="Settings"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="right"
+                  className="w-[280px] bg-[#1C1C1E] border-l border-white/[0.08] p-0"
+                >
+                  <SheetHeader className="px-5 pt-6 pb-4 border-b border-white/[0.06]">
+                    <SheetTitle className="text-sm font-semibold text-white text-left">
+                      {lang === 'cn' ? '设置' : 'Settings'}
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="px-5 py-5 space-y-5">
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-widest">
+                        {lang === 'cn' ? '显示货币' : 'Display Currency'}
+                      </p>
+                      <CurrencySelect fullWidth />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-widest">
+                        {lang === 'cn' ? '计量单位' : 'Weight Unit'}
+                      </p>
+                      <UnitToggle />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-widest">
+                        {lang === 'cn' ? '界面语言' : 'Language'}
+                      </p>
+                      <LangToggle />
+                    </div>
+                    <div className="pt-4 border-t border-white/[0.06]">
+                      <Button
+                        variant="ghost"
+                        onClick={signOut}
+                        className="w-full justify-start text-sm text-muted-foreground hover:text-white gap-2 px-0"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        {lang === 'cn' ? '退出登录' : 'Sign Out'}
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
-        </header>
+        </div>
+      </nav>
 
-        {/* ══════════════════════════════════════════════════
-            STITCH BENTO GRID LAYOUT
-            Desktop: 2 Columns (7 cols left, 5 cols right)
-            Mobile: 1 Column stack
-        ══════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Left Column: Portfolio Overview & Gold Market Chart */}
-          <div className="lg:col-span-7 space-y-5">
+      {/* ══════════════════════════════════════════════════
+          2. RESPONSIVE VIEWPORT CONTAINER (§5)
+          Desktop (≥1024px): 100vh locked scene
+          Mobile (<1024px): Natural touch vertical scrolling
+      ══════════════════════════════════════════════════ */}
+      <main
+        ref={scrollContainerRef}
+        className="flex-1 w-full pt-[calc(44px+env(safe-area-inset-top,0px))] pb-[calc(24px+env(safe-area-inset-bottom,0px))] overflow-y-auto"
+      >
+        <div className="dashboard-grid max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4 grid grid-cols-1 gap-3 sm:gap-4 items-stretch lg:grid-cols-5">
+          {/* Mobile order: Portfolio, Add Trade, Market, Transactions. Desktop rows use a 3:2 width ratio. */}
+          <div className="dashboard-slot-portfolio min-w-0 lg:col-span-3">
             <TradeSummary
               trades={trades}
               currentPrice={currentPrice}
@@ -134,11 +221,24 @@ const Index = () => {
               displayCurrency={displayCurrency}
               unit={unit}
             />
+          </div>
 
+          <div className="dashboard-slot-add-trade min-w-0 min-h-[280px] lg:col-span-2">
+            <AddTradeForm
+              onAdd={addTrade}
+              currentPrice={currentPrice}
+              convert={convert}
+              displayCurrency={displayCurrency}
+              unit={unit}
+            />
+          </div>
+
+          <div className="dashboard-slot-market min-w-0 min-h-[440px] lg:col-span-3">
             <GoldPriceChart
               prices={prices}
               currentPrice={currentPrice}
               lastUpdated={lastUpdated}
+              freshness={freshness}
               onRefresh={refetch}
               loading={loading}
               convert={convert}
@@ -149,16 +249,7 @@ const Index = () => {
             />
           </div>
 
-          {/* Right Column: Add Trade & Recent Transactions */}
-          <div className="lg:col-span-5 space-y-5">
-            <AddTradeForm
-              onAdd={addTrade}
-              currentPrice={currentPrice}
-              convert={convert}
-              displayCurrency={displayCurrency}
-              unit={unit}
-            />
-
+          <div className="dashboard-slot-transactions min-w-0 min-h-[440px] lg:col-span-2">
             <TradeList
               trades={trades}
               currentPrice={currentPrice}
@@ -169,13 +260,17 @@ const Index = () => {
             />
           </div>
         </div>
+      </main>
 
-      </div>
+      {/* Chat is reachable from the same floating advisor control on every viewport. */}
+      <GoldAdvisorChat
+        currentPrice={currentPrice}
+        open={chatOpen}
+        onOpenChange={(isOpen) => {
+          setChatOpen(isOpen);
+        }}
+      />
 
-      {/* ══════════════════════════════════════════════════
-          GOLD ADVISOR LAUNCHER & CHAT
-      ══════════════════════════════════════════════════ */}
-      <GoldAdvisorChat currentPrice={currentPrice} />
     </div>
   );
 };

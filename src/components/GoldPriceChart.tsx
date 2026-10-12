@@ -1,8 +1,9 @@
 import { useEffect, useRef, useMemo } from 'react';
-import { createChart, ColorType, CrosshairMode, AreaSeries, type IChartApi, type ISeriesApi } from 'lightweight-charts';
+import { createChart, ColorType, CrosshairMode, AreaSeries, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import type { GoldPrice, Currency, WeightUnit } from '@/lib/gold-types';
 import type { TimeRange } from '@/hooks/use-gold-price';
-import { priceForUnit, formatCurrency } from '@/lib/gold-types';
+import type { MarketFreshness } from '@/hooks/use-gold-price';
+import { priceBasisLabel, priceForUnit, formatCurrency } from '@/lib/gold-types';
 import { useI18n } from '@/lib/i18n';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,8 @@ import { Button } from '@/components/ui/button';
 interface Props {
   prices: GoldPrice[];
   currentPrice?: number;
-  lastUpdated?: Date;
+  lastUpdated?: Date | null;
+  freshness: MarketFreshness;
   onRefresh?: () => void;
   loading: boolean;
   convert: (usd: number, to: Currency) => number;
@@ -26,6 +28,7 @@ export function GoldPriceChart({
   prices,
   currentPrice,
   lastUpdated,
+  freshness,
   onRefresh,
   loading,
   convert,
@@ -34,12 +37,13 @@ export function GoldPriceChart({
   timeRange,
   onTimeRangeChange,
 }: Props) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<any> | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Area'> | null>(null);
+  const displayCurrencyRef = useRef(displayCurrency);
+  displayCurrencyRef.current = displayCurrency;
 
-  const unitLabel = unit === 'oz' ? 'oz' : 'g';
   const displaySpotPrice = currentPrice ? priceForUnit(convert(currentPrice, displayCurrency), unit) : 0;
 
   const data = useMemo(() => {
@@ -49,7 +53,7 @@ export function GoldPriceChart({
         const displayPrice = priceForUnit(convertedPerGram, unit);
         const value = Math.round(displayPrice * 100) / 100;
         return {
-          time: (Math.floor(p.timestamp / 1000)) as any,
+          time: Math.floor(p.timestamp / 1000) as UTCTimestamp,
           value,
         };
       })
@@ -72,7 +76,7 @@ export function GoldPriceChart({
     const chart = createChart(containerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: 'rgba(255, 255, 255, 0.4)',
+        textColor: 'rgba(255, 255, 255, 0.6)',
         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
         fontSize: 10,
       },
@@ -91,7 +95,7 @@ export function GoldPriceChart({
       },
       timeScale: {
         borderColor: 'rgba(255, 255, 255, 0.06)',
-        timeVisible: timeRange === '7D',
+        timeVisible: false,
         secondsVisible: false,
         fixLeftEdge: true,
         fixRightEdge: true,
@@ -110,7 +114,7 @@ export function GoldPriceChart({
       crosshairMarkerRadius: 4,
       priceFormat: {
         type: 'custom',
-        formatter: (price: any) => formatCurrency(price, displayCurrency),
+        formatter: (price: number) => formatCurrency(price, displayCurrencyRef.current),
       },
     });
 
@@ -131,6 +135,10 @@ export function GoldPriceChart({
       chartRef.current = null;
       seriesRef.current = null;
     };
+  }, []);
+
+  useEffect(() => {
+    chartRef.current?.applyOptions({ timeScale: { timeVisible: timeRange === '7D' } });
   }, [timeRange]);
 
   // Update data
@@ -140,7 +148,7 @@ export function GoldPriceChart({
       seriesRef.current.applyOptions({
         priceFormat: {
           type: 'custom',
-          formatter: (price: any) => formatCurrency(price, displayCurrency),
+          formatter: (price: number) => formatCurrency(price, displayCurrency),
         },
       });
       chartRef.current?.timeScale().fitContent();
@@ -150,19 +158,37 @@ export function GoldPriceChart({
   return (
     <section
       aria-label={t.market}
-      className="bg-[#13161B] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 h-full flex flex-col justify-between"
+      className="apple-card dashboard-card p-5 sm:p-6 space-y-4 flex flex-col h-full min-h-[440px] max-h-[440px] justify-between lg:min-h-0 lg:max-h-none"
     >
       {/* ── Market Header Bar ───────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+      <div className="flex flex-col items-start justify-between gap-3">
         {/* Left: Section Label & Spot Price */}
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+            <span
+              aria-hidden="true"
+              className={`w-1.5 h-1.5 rounded-full ${
+                freshness === 'live'
+                  ? 'bg-[#10B981] animate-pulse'
+                  : freshness === 'stale'
+                    ? 'bg-amber-400'
+                    : 'bg-slate-400'
+              }`}
+            />
             <span className="text-xs text-muted-foreground font-medium">
               {t.marketCondition}
             </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/25">
-              {t.liveGoldPrice}
+            <span
+              aria-label={`${t.marketCondition}: ${freshness === 'live' ? t.marketLive : freshness === 'stale' ? t.marketStale : t.marketUnavailable}`}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                freshness === 'live'
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                  : freshness === 'stale'
+                    ? 'bg-amber-500/15 text-amber-200 border-amber-500/30'
+                    : 'bg-white/10 text-white/80 border-white/20'
+              }`}
+            >
+              {freshness === 'live' ? t.marketLive : freshness === 'stale' ? t.marketStale : t.marketUnavailable}
             </span>
           </div>
 
@@ -171,13 +197,13 @@ export function GoldPriceChart({
               {displaySpotPrice > 0 ? formatCurrency(displaySpotPrice, displayCurrency) : '—'}
             </span>
             <span className="text-xs text-muted-foreground font-medium">
-              {displayCurrency} / {unitLabel}
+              {priceBasisLabel(displayCurrency, unit)}
             </span>
           </div>
         </div>
 
         {/* Right: Time Range Selector, Refresh, & Timestamp */}
-        <div className="flex flex-col items-start sm:items-end gap-2">
+        <div className="flex w-full flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
             {/* Time range pills */}
             <div className="flex items-center bg-[#0E1115] border border-white/[0.04] rounded-lg p-0.5 gap-0.5">
@@ -185,7 +211,8 @@ export function GoldPriceChart({
                 <button
                   key={r}
                   onClick={() => onTimeRangeChange(r)}
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                  aria-pressed={r === timeRange}
+                  className={`min-h-11 min-w-10 px-2 py-1 text-xs font-semibold rounded-md transition-all ${
                     r === timeRange
                       ? 'bg-[#F3BA2F] text-black shadow-sm'
                       : 'text-muted-foreground hover:text-white hover:bg-white/[0.04]'
@@ -202,33 +229,36 @@ export function GoldPriceChart({
                 variant="ghost"
                 size="icon"
                 onClick={onRefresh}
-                className="h-8 w-8 text-muted-foreground hover:text-white hover:bg-white/[0.04] rounded-lg"
-                title={t.updated}
+                disabled={loading}
+                aria-busy={loading}
+                className="h-10 w-10 text-muted-foreground hover:text-white hover:bg-white/[0.04] rounded-lg"
+                title={lang === 'cn' ? '刷新金价' : 'Refresh prices'}
+                aria-label={lang === 'cn' ? '刷新金价' : 'Refresh prices'}
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               </Button>
             )}
           </div>
 
-          {lastUpdated && (
-            <span className="text-[10px] text-muted-foreground tabular-nums font-mono">
-              {lastUpdated.toLocaleTimeString('zh-CN')}
-            </span>
-          )}
         </div>
       </div>
 
-      {/* ── Chart Viewport ─────────────────────────────────── */}
-      <div className="relative pt-2">
+      {/* ── Chart Viewport (Fix 1: Move inside inner padded bounds, eliminate bottom overflow) ── */}
+      <div className="relative flex-1 flex flex-col justify-between min-h-0 pt-1 pb-1 px-1">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center z-10 bg-[#13161B]/80 backdrop-blur-sm rounded-xl">
             <div className="text-muted-foreground text-xs">{t.loading}</div>
           </div>
         )}
-        <div ref={containerRef} className="h-[280px] sm:h-[320px] w-full" />
-        <div className="text-[10px] text-muted-foreground/60 text-right mt-1 font-mono">
-          Local Time
-        </div>
+        <div ref={containerRef} className="h-[250px] sm:h-[265px] w-full" />
+      </div>
+      <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] pt-2 text-[10px] text-muted-foreground font-mono">
+        <span className="shrink-0">{lang === 'cn' ? '本地时间' : 'Local time'}</span>
+        <span className="text-right tabular-nums">
+          {lastUpdated
+            ? `${t.quoteUpdated} ${lastUpdated.toLocaleTimeString(lang === 'cn' ? 'zh-CN' : 'en-US')}`
+            : t.quoteNotUpdatedYet}
+        </span>
       </div>
     </section>
   );

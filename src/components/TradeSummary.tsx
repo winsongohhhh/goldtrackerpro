@@ -1,5 +1,5 @@
 import type { GoldTrade, Currency, WeightUnit } from '@/lib/gold-types';
-import { formatCurrency, priceForUnit, quantityForUnit } from '@/lib/gold-types';
+import { formatCurrency, priceBasisLabel, priceForUnit, quantityForUnit, weightUnitLabel } from '@/lib/gold-types';
 import { useI18n } from '@/lib/i18n';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -22,13 +22,13 @@ function formatQty(value: number): string {
 export function TradeSummary({ trades, currentPrice, convert, displayCurrency, unit }: Props) {
   const { t } = useI18n();
 
-  const unitLabel = unit === 'oz' ? 'oz' : 'g';
+  const unitLabel = weightUnitLabel(unit);
   const dc = displayCurrency;
 
   // ── Empty state ──────────────────────────────────────────
   if (trades.length === 0) {
     return (
-      <section className="bg-[#13161B] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center h-full flex flex-col items-center justify-center">
+      <section className="dashboard-card bg-[#13161B] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center h-full flex flex-col items-center justify-center">
         <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto mb-3 flex items-center justify-center font-bold text-lg">
           ◆
         </div>
@@ -66,14 +66,14 @@ export function TradeSummary({ trades, currentPrice, convert, displayCurrency, u
   return (
     <section
       aria-label={t.portfolio}
-      className="bg-[#13161B] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-5 h-full flex flex-col justify-between"
+      className="apple-card dashboard-card p-4 sm:p-5 flex flex-col gap-3.5 h-full"
     >
       {/* ── Top Header Row ──────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground font-medium">
-          {t.holdingShare}
+        <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider text-left">
+          {t.portfolio}
         </span>
-        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${pillBg}`}>
+        <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${pillBg}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
           <span>
             {pnlSign}{pnlPercent.toFixed(2)}% {t.yieldRate}
@@ -81,69 +81,53 @@ export function TradeSummary({ trades, currentPrice, convert, displayCurrency, u
         </div>
       </div>
 
-      {/* ── Middle Split: Holdings (Left) & Current Value (Right) ── */}
-      <div className="flex items-start justify-between gap-4">
-        {/* Left: Total Holdings */}
-        <div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-4xl sm:text-5xl font-bold tracking-tight text-white tabular-nums">
-              {formatQty(displayQty)}
-            </span>
-            <span className="text-lg sm:text-xl font-medium text-amber-400">
-              {unitLabel}
-            </span>
-          </div>
-          <span className="text-xs text-muted-foreground mt-1 block">
-            {t.holdingQty}
+      {/* ── Hero Metric: Net Worth & Secondary Return (Fix 4: Tight & Dense) ── */}
+      <div className="flex flex-col items-start gap-0.5 text-left">
+        <span className="text-[10px] text-muted-foreground font-medium block">
+          {t.currentMarketValue}
+        </span>
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white tabular-nums leading-none">
+            {formatCurrency(currentValue, dc)}
           </span>
         </div>
-
-        {/* Right: Current Market Value & Unrealized P&L */}
-        <div className="text-right">
-          <span className="text-[11px] text-muted-foreground block mb-0.5">
-            {t.currentMarketValue}
+        <div className={`inline-flex items-center gap-1.5 text-xs font-semibold tabular-nums mt-0.5 ${pnlColor}`}>
+          {isProfit ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+          <span>
+            {t.unrealizedPnlShort} {pnlSign}{formatCurrency(totalPnL, dc)}
           </span>
-          <div className="text-2xl sm:text-3xl font-bold tracking-tight text-white tabular-nums leading-tight">
-            {formatCurrency(currentValue, dc)}
-          </div>
-          <div className={`inline-flex items-center justify-end gap-1 text-xs sm:text-sm font-semibold mt-1 tabular-nums ${pnlColor}`}>
-            {isProfit ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-            <span>
-              {t.unrealizedPnlShort} {pnlSign}{formatCurrency(totalPnL, dc)}
-            </span>
-          </div>
         </div>
       </div>
 
-      {/* ── Bottom Inset Sub-stats Row ──────────────────────── */}
-      <div className="grid grid-cols-3 gap-2.5 pt-1">
+      {/* ── Bottom Inset Sub-stats (Fix 4: Compact 3-Column Grid) ──────── */}
+      <div className="grid grid-cols-3 gap-2.5 pt-2 border-t border-white/[0.06]">
+        {/* Total Holdings */}
+        <div className="bg-[#E5A93C]/[0.08] border border-[#E5A93C]/25 rounded-xl p-2.5 sm:p-3 min-w-0 flex flex-col justify-between">
+          <span className="text-[10px] text-[#E5A93C]/90 font-semibold block truncate mb-1 text-left">
+            {t.holdingQty}
+          </span>
+          <div className="text-base sm:text-lg font-extrabold text-white tabular-nums whitespace-normal break-all [overflow-wrap:anywhere] text-left leading-tight">
+            {formatQty(displayQty)} <span className="text-[#E5A93C] font-semibold text-xs sm:text-sm">{unitLabel}</span>
+          </div>
+        </div>
+
         {/* Total Invested */}
-        <div className="bg-[#0E1115] border border-white/[0.04] rounded-xl p-3 min-w-0">
-          <span className="text-[10px] text-muted-foreground block truncate mb-1">
+        <div className="bg-black/25 border border-white/[0.04] rounded-xl p-2.5 sm:p-3 min-w-0 flex flex-col justify-between">
+          <span className="text-[10px] text-muted-foreground block truncate mb-1 text-left">
             {t.totalInvested}
           </span>
-          <div className="text-xs sm:text-sm font-bold text-white tabular-nums truncate">
+          <div className="text-xs sm:text-sm font-bold text-white tabular-nums truncate text-left">
             {formatCurrency(totalInvested, dc)}
           </div>
         </div>
 
         {/* Avg Purchase Price */}
-        <div className="bg-[#0E1115] border border-white/[0.04] rounded-xl p-3 min-w-0">
-          <span className="text-[10px] text-muted-foreground block truncate mb-1">
-            {t.averagePurchasePrice}
+        <div className="bg-black/25 border border-white/[0.04] rounded-xl p-2.5 sm:p-3 min-w-0 flex flex-col justify-between">
+          <span className="text-[10px] text-muted-foreground block truncate mb-1 text-left">
+            {t.averagePurchasePrice} ({priceBasisLabel(dc, unit)})
           </span>
-          <div className="text-xs sm:text-sm font-bold text-white tabular-nums truncate">
+          <div className="text-xs sm:text-sm font-bold text-white tabular-nums truncate text-left">
             {formatCurrency(avgCostPerUnit, dc)}/{unitLabel}
-          </div>
-        </div>
-
-        {/* Trades Count */}
-        <div className="bg-[#0E1115] border border-white/[0.04] rounded-xl p-3 min-w-0">
-          <span className="text-[10px] text-muted-foreground block truncate mb-1">
-            {t.numTrades}
-          </span>
-          <div className="text-xs sm:text-sm font-bold text-white tabular-nums truncate">
-            {trades.length}
           </div>
         </div>
       </div>

@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Currency, GoldTrade, WeightUnit } from '@/lib/gold-types';
-import { priceForUnit } from '@/lib/gold-types';
-import { Plus } from 'lucide-react';
+import { OZ_TO_GRAM, priceBasisLabel, priceForUnit, weightUnitLabel, weightUnitOptionLabel } from '@/lib/gold-types';
+import { Loader2, Plus } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface Props {
@@ -21,48 +21,60 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
   const [quantity, setQuantity] = useState('');
   const [currency, setCurrency] = useState<Currency>(displayCurrency);
   const [tradeUnit, setTradeUnit] = useState<WeightUnit>(unit);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionAnnouncement, setSubmissionAnnouncement] = useState('');
+
+  useEffect(() => setCurrency(displayCurrency), [displayCurrency]);
+  useEffect(() => setTradeUnit(unit), [unit]);
 
   const displayCurrentPrice = priceForUnit(convert(currentPrice, currency), tradeUnit);
-  const unitLabel = tradeUnit === 'oz' ? 'oz' : 'g';
+  const unitLabel = weightUnitLabel(tradeUnit);
+  const priceBasis = priceBasisLabel(currency, tradeUnit);
 
   const handleQuickMarketFill = () => {
-    if (currentPrice > 0) {
-      setPrice(displayCurrentPrice.toFixed(2));
-    }
+    if (currentPrice > 0) setPrice(displayCurrentPrice.toFixed(2));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const p = parseFloat(price);
     const q = parseFloat(quantity);
-    if (isNaN(p) || isNaN(q) || q <= 0) return;
+    if (!Number.isFinite(p) || !Number.isFinite(q) || p <= 0 || q <= 0 || isSubmitting) return;
 
-    // Convert input price (per unit) to per gram, and quantity to grams
-    const pricePerGram = tradeUnit === 'oz' ? p / 31.1035 : p;
-    const quantityGrams = tradeUnit === 'oz' ? q * 31.1035 : q;
+    // Convert input price (per unit) to per gram, and quantity to grams.
+    const pricePerGram = tradeUnit === 'oz' ? p / OZ_TO_GRAM : p;
+    const quantityGrams = tradeUnit === 'oz' ? q * OZ_TO_GRAM : q;
 
-    const result = await onAdd({
-      date: new Date().toISOString().split('T')[0],
-      price: Math.round(pricePerGram * 100) / 100,
-      quantity: Math.round(quantityGrams * 100) / 100,
-      currency,
-    });
+    setIsSubmitting(true);
+    setSubmissionAnnouncement(t.tradeAdding);
+    try {
+      const result = await onAdd({
+        date: new Date().toISOString().split('T')[0],
+        price: pricePerGram,
+        quantity: quantityGrams,
+        currency,
+      });
 
-    if (result && result.success === false) {
-      return;
+      if (!result?.success) {
+        setSubmissionAnnouncement(t.tradeAddFailedAnnouncement);
+        return;
+      }
+      setPrice('');
+      setQuantity('');
+      setSubmissionAnnouncement(t.tradeAddedAnnouncement);
+    } catch {
+      setSubmissionAnnouncement(t.tradeAddFailedAnnouncement);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setPrice('');
-    setQuantity('');
   };
 
   return (
-    <section className="bg-[#13161B] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 h-full flex flex-col justify-between">
-      {/* ── Card Header ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+    <section aria-label={t.addTradeTitle} className="apple-card dashboard-card p-5 sm:p-6 flex flex-col h-full">
+      <div className="flex items-center justify-between pb-1 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-          <h2 className="text-sm font-semibold text-white">
+          <span className="w-2 h-2 rounded-full bg-[#E5A93C]" aria-hidden="true" />
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {t.addTradeTitle}
           </h2>
         </div>
@@ -70,26 +82,24 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
           <button
             type="button"
             onClick={handleQuickMarketFill}
-            className="text-xs text-amber-400 hover:text-amber-300 font-medium transition-colors"
+            className="min-h-11 px-2 text-xs text-[#E5A93C] hover:text-[#F5D285] font-medium transition-colors"
           >
             {t.quickMarketBuy}
           </button>
         )}
       </div>
 
-      {/* ── Form Inputs 2×2 Grid ───────────────────────────── */}
-      <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col justify-between pt-1">
-        <div className="grid grid-cols-2 gap-3">
-          {/* Row 1: Currency */}
-          <div>
+      <form onSubmit={handleSubmit} className="w-full max-w-xl mx-auto flex-1 flex flex-col justify-center gap-4 py-2" aria-label={t.addTradeTitle}>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+          <div className="min-w-0">
             <label className="text-[11px] text-muted-foreground mb-1.5 block font-medium">
               {t.settlementCurrency}
             </label>
             <Select value={currency} onValueChange={v => setCurrency(v as Currency)}>
-              <SelectTrigger className="bg-[#0E1115] border border-white/[0.06] rounded-xl h-10 text-xs text-white focus:ring-0">
+              <SelectTrigger aria-label={t.settlementCurrency} className="bg-black/30 border border-white/[0.08] rounded-xl h-10 text-xs text-white focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-[#1C1C1E] border-white/10 text-white">
                 <SelectItem value="USD">USD ($)</SelectItem>
                 <SelectItem value="CNY">CNY (¥)</SelectItem>
                 <SelectItem value="EUR">EUR (€)</SelectItem>
@@ -99,61 +109,68 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
             </Select>
           </div>
 
-          {/* Row 1: Unit */}
-          <div>
+          <div className="min-w-0">
             <label className="text-[11px] text-muted-foreground mb-1.5 block font-medium">
               {t.measuringUnit}
             </label>
             <Select value={tradeUnit} onValueChange={v => setTradeUnit(v as WeightUnit)}>
-              <SelectTrigger className="bg-[#0E1115] border border-white/[0.06] rounded-xl h-10 text-xs text-white focus:ring-0">
+              <SelectTrigger aria-label={t.measuringUnit} className="bg-black/30 border border-white/[0.08] rounded-xl h-10 text-xs text-white focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="g">g ({t.perGram.replace('/', '')})</SelectItem>
-                <SelectItem value="oz">oz ({t.perOz.replace('/', '')})</SelectItem>
+              <SelectContent className="bg-[#1C1C1E] border-white/10 text-white">
+                <SelectItem value="g">{weightUnitOptionLabel('g')}</SelectItem>
+                <SelectItem value="oz">{weightUnitOptionLabel('oz')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Row 2: Buy Price */}
-          <div>
-            <label className="text-[11px] text-muted-foreground mb-1.5 block font-medium">
-              {t.buyUnitPrice} (/{unitLabel})
+          <div className="min-w-0">
+            <label htmlFor="trade-buy-price" className="text-[11px] text-muted-foreground mb-1.5 block font-medium">
+              {t.buyUnitPrice} ({priceBasis})
             </label>
             <Input
+              id="trade-buy-price"
               type="number"
+              min="0.01"
               step="0.01"
               placeholder={currentPrice ? `${displayCurrentPrice.toFixed(2)}` : t.price}
               value={price}
               onChange={e => setPrice(e.target.value)}
-              className="bg-[#0E1115] border border-white/[0.06] rounded-xl h-10 text-xs font-mono text-white placeholder:text-muted-foreground/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              required
+              className="bg-black/30 border border-white/[0.08] rounded-xl h-10 text-xs font-mono text-white placeholder:text-muted-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
 
-          {/* Row 2: Quantity */}
-          <div>
-            <label className="text-[11px] text-muted-foreground mb-1.5 block font-medium">
+          <div className="min-w-0">
+            <label htmlFor="trade-quantity" className="text-[11px] text-muted-foreground mb-1.5 block font-medium">
               {t.tradeQuantity} ({unitLabel})
             </label>
             <Input
+              id="trade-quantity"
               type="number"
+              min="0.01"
               step="0.01"
               placeholder={unitLabel}
               value={quantity}
               onChange={e => setQuantity(e.target.value)}
-              className="bg-[#0E1115] border border-white/[0.06] rounded-xl h-10 text-xs font-mono text-white placeholder:text-muted-foreground/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              required
+              className="bg-black/30 border border-white/[0.08] rounded-xl h-10 text-xs font-mono text-white placeholder:text-muted-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
         </div>
 
-        {/* ── Submit CTA Button ──────────────────────────────── */}
         <Button
           type="submit"
-          className="w-full bg-[#F3BA2F] hover:bg-[#F3BA2F]/90 text-black font-bold h-10 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+          className="w-full apple-btn-primary h-10 rounded-xl transition-all flex items-center justify-center gap-1.5"
         >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          {t.addRecordBtn}
+          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 stroke-[2.5]" aria-hidden="true" />}
+          {isSubmitting ? t.tradeAdding : t.addRecordBtn}
         </Button>
+        <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {submissionAnnouncement}
+        </p>
       </form>
     </section>
   );

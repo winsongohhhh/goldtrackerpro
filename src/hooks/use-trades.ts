@@ -1,12 +1,27 @@
-import { useState, useEffect, useCallback } from 'react';
+import { createElement, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { GoldTrade } from '@/lib/gold-types';
 import { useAuth } from './use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction, type ToastActionElement } from '@/components/ui/toast';
+import { useI18n } from '@/lib/i18n';
+
+function toGoldTrade(row: { id: string; date: string; price: number | string; quantity: number | string; currency: string }): GoldTrade {
+  return {
+    id: row.id,
+    date: row.date,
+    price: Number(row.price),
+    quantity: Number(row.quantity),
+    currency: row.currency as GoldTrade['currency'],
+  };
+}
 
 export function useTrades() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
+  const translationsRef = useRef(t);
+  translationsRef.current = t;
   const [trades, setTrades] = useState<GoldTrade[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,30 +34,24 @@ export function useTrades() {
         .order('created_at', { ascending: false });
       if (error) {
         toast({
-          title: "Error fetching trades",
-          description: error.message || "Failed to load trades.",
-          variant: "destructive",
+          title: translationsRef.current.tradeFetchErrorTitle,
+          description: translationsRef.current.tradeFetchErrorDescription,
+          variant: 'destructive',
         });
       } else if (data) {
-        setTrades(data.map(r => ({
-          id: r.id,
-          date: r.date,
-          price: Number(r.price),
-          quantity: Number(r.quantity),
-          currency: r.currency as GoldTrade['currency'],
-        })));
+        setTrades(data.map(toGoldTrade));
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({
-        title: "Error fetching trades",
-        description: err.message || "An unexpected error occurred.",
-        variant: "destructive",
+        title: translationsRef.current.tradeFetchErrorTitle,
+        description: translationsRef.current.tradeFetchErrorDescription,
+        variant: 'destructive',
       });
     }
     setLoading(false);
   }, [user, toast]);
 
-  useEffect(() => { fetchTrades(); }, [fetchTrades]);
+  useEffect(() => { void fetchTrades(); }, [fetchTrades]);
 
   const addTrade = async (trade: Omit<GoldTrade, 'id'>) => {
     if (!user) return { success: false };
@@ -58,68 +67,81 @@ export function useTrades() {
         })
         .select()
         .single();
-        
+
       if (error) {
-        toast({
-          title: "Failed to add trade",
-          description: error.message || "An unexpected error occurred.",
-          variant: "destructive",
-        });
+        toast({ title: t.tradeAddErrorTitle, description: t.tradeAddErrorDescription, variant: 'destructive' });
         return { success: false };
       }
-      
+
       if (data) {
-        setTrades(prev => [{
-          id: data.id,
-          date: data.date,
-          price: Number(data.price),
-          quantity: Number(data.quantity),
-          currency: data.currency as GoldTrade['currency'],
-        }, ...prev]);
-        toast({
-          title: "Trade added",
-          description: "Your trade was successfully added.",
-        });
+        setTrades(prev => [toGoldTrade(data), ...prev]);
+        toast({ title: t.tradeAddedTitle, description: t.tradeAddedDescription });
         return { success: true };
       }
       return { success: false };
-    } catch (err: any) {
-      toast({
-        title: "Failed to add trade",
-        description: err.message || "An unexpected error occurred.",
-        variant: "destructive",
-      });
+    } catch (err) {
+      toast({ title: t.tradeAddErrorTitle, description: t.tradeAddErrorDescription, variant: 'destructive' });
+      return { success: false };
+    }
+  };
+
+  const restoreTrade = async (trade: GoldTrade) => {
+    if (!user) return { success: false };
+    try {
+      const { data, error } = await supabase
+        .from('trades')
+        .insert({
+          user_id: user.id,
+          date: trade.date,
+          price: trade.price,
+          quantity: trade.quantity,
+          currency: trade.currency,
+        })
+        .select()
+        .single();
+
+      if (error || !data) {
+        toast({ title: t.tradeRestoreFailed, variant: 'destructive' });
+        return { success: false };
+      }
+
+      const restored = toGoldTrade(data);
+      setTrades(prev => [restored, ...prev.filter(existing => existing.id !== restored.id)]);
+      toast({ title: t.tradeRestored });
+      return { success: true };
+    } catch {
+      toast({ title: t.tradeRestoreFailed, variant: 'destructive' });
       return { success: false };
     }
   };
 
   const deleteTrade = async (id: string) => {
+    const deletedTrade = trades.find(trade => trade.id === id);
     try {
       const { error } = await supabase.from('trades').delete().eq('id', id);
       if (error) {
-        toast({
-          title: "Failed to delete trade",
-          description: error.message || "An unexpected error occurred.",
-          variant: "destructive",
-        });
+        toast({ title: t.tradeDeleteErrorTitle, description: t.tradeDeleteErrorDescription, variant: 'destructive' });
         return { success: false };
       }
-      
-      setTrades(prev => prev.filter(t => t.id !== id));
+
+      setTrades(prev => prev.filter(trade => trade.id !== id));
       toast({
-        title: "Trade deleted",
-        description: "Your trade was successfully removed.",
+        title: t.tradeDeleted,
+        description: t.tradeDeletedUndo,
+        ...(deletedTrade && {
+          action: createElement(
+            ToastAction,
+            { altText: t.undo, onClick: () => { void restoreTrade(deletedTrade); } },
+            t.undo,
+          ) as unknown as ToastActionElement,
+        }),
       });
       return { success: true };
-    } catch (err: any) {
-      toast({
-        title: "Failed to delete trade",
-        description: err.message || "An unexpected error occurred.",
-        variant: "destructive",
-      });
+    } catch (err) {
+      toast({ title: t.tradeDeleteErrorTitle, description: t.tradeDeleteErrorDescription, variant: 'destructive' });
       return { success: false };
     }
   };
 
-  return { trades, addTrade, deleteTrade, loading };
+  return { trades, addTrade, deleteTrade, restoreTrade, loading };
 }

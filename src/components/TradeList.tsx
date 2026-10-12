@@ -1,6 +1,6 @@
 import { Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import type { GoldTrade, Currency, WeightUnit } from '@/lib/gold-types';
-import { formatCurrency, priceForUnit, quantityForUnit } from '@/lib/gold-types';
+import { formatCurrency, priceBasisLabel, priceForUnit, quantityForUnit, weightUnitLabel } from '@/lib/gold-types';
 import { useI18n } from '@/lib/i18n';
 
 interface Props {
@@ -22,7 +22,7 @@ function formatQty(value: number): string {
 
 export function TradeList({ trades, currentPrice, onDelete, convert, displayCurrency, unit }: Props) {
   const { t } = useI18n();
-  const unitLabel = unit === 'oz' ? 'oz' : 'g';
+  const unitLabel = weightUnitLabel(unit);
 
   const getPnL = (trade: GoldTrade): number => {
     const currentInDisplay = convert(currentPrice, displayCurrency);
@@ -38,7 +38,7 @@ export function TradeList({ trades, currentPrice, onDelete, convert, displayCurr
     const tradePriceUSD = rateToTrade > 0 ? trade.price / rateToTrade : 0;
     const inDisplay = convert(tradePriceUSD, displayCurrency);
     const perUnit = priceForUnit(inDisplay, unit);
-    return `${formatCurrency(perUnit, displayCurrency)}/${unitLabel}`;
+    return `${formatCurrency(perUnit, displayCurrency)} ${priceBasisLabel(displayCurrency, unit)}`;
   };
 
   const getCurrentVal = (trade: GoldTrade): string => {
@@ -48,11 +48,11 @@ export function TradeList({ trades, currentPrice, onDelete, convert, displayCurr
   };
 
   return (
-    <section className="bg-[#13161B] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-3">
-      {/* ── Header ─────────────────────────────────────────── */}
-      <div className="flex items-center justify-between pb-1">
+    <section className="trade-list-card apple-card dashboard-card p-5 sm:p-6 flex flex-col h-full min-h-[440px] max-h-[440px] justify-between lg:min-h-0 lg:max-h-none">
+      {/* ── Header without 'View All' Button (Fix 5) ───────────── */}
+      <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] flex-shrink-0">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-white">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {t.transactionRecords}
           </h2>
           {trades.length > 0 && (
@@ -61,70 +61,67 @@ export function TradeList({ trades, currentPrice, onDelete, convert, displayCurr
             </span>
           )}
         </div>
-        <span className="text-xs text-muted-foreground/70 select-none">
-          {t.viewAll}
-        </span>
       </div>
 
-      {/* ── Empty State ────────────────────────────────────── */}
-      {trades.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-8 text-center">
-          {t.noTrades}
-        </p>
-      ) : (
-        /* ── Transactions List ──────────────────────────────── */
-        <ul className="divide-y divide-white/[0.04]">
-          {trades.map((trade) => {
-            const pnl = getPnL(trade);
-            const isProfit = pnl >= 0;
-            const displayQty = quantityForUnit(trade.quantity, unit);
-            const pnlColor = isProfit ? 'text-[#10B981]' : 'text-[#EF4444]';
+      {/* ── Scrollable Transaction List with Sleek iOS Scrollbar (Fix 3: pb-6 & max-h constraint) ─ */}
+      <div className="transactions-container flex-1 overflow-y-auto overscroll-contain pr-1.5 pt-1 pb-6 max-h-[360px]">
+        {trades.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center py-12 text-center text-xs text-muted-foreground">
+            {t.noTrades}
+          </div>
+        ) : (
+          <ul className="divide-y divide-white/[0.02]">
+            {trades.map((trade) => {
+              const pnl = getPnL(trade);
+              const isProfit = pnl >= 0;
+              const displayQty = quantityForUnit(trade.quantity, unit);
+              const pnlColor = isProfit ? 'text-[#10B981]' : 'text-[#EF4444]';
 
-            return (
-              <li key={trade.id} className="py-3.5 flex items-center justify-between gap-3 group">
-                {/* Left Column: Price + Quantity Pill & Date */}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs sm:text-sm font-bold text-white tabular-nums">
-                      {getDisplayPrice(trade)}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25 text-[10px] font-bold tabular-nums">
-                      {formatQty(displayQty)} {unitLabel}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground/80 font-mono mt-0.5 block">
-                    {trade.date}
-                  </span>
-                </div>
-
-                {/* Right Column: P&L + Value / Cost & Delete */}
-                <div className="flex items-center gap-2.5 text-right flex-shrink-0">
-                  <div>
-                    <div className={`flex items-center justify-end gap-1 text-xs sm:text-sm font-bold tabular-nums ${pnlColor}`}>
-                      {isProfit ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                      <span>
-                        {isProfit ? '+' : ''}{formatCurrency(pnl, displayCurrency)}
+              return (
+                <li key={trade.id} className="py-3 flex flex-wrap items-start justify-between gap-x-3 gap-y-2 group border-b border-white/[0.04] last:border-none">
+                  {/* Left: Price, Quantity Pill, Date */}
+                  <div className="min-w-0 flex-1 basis-[12rem]">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span className="min-w-0 max-w-full break-all text-xs sm:text-sm font-bold text-white tabular-nums">
+                        {getDisplayPrice(trade)}
+                      </span>
+                      <span className="max-w-full whitespace-normal break-all [overflow-wrap:anywhere] px-1.5 py-0.5 rounded bg-[#E5A93C]/15 text-[#E5A93C] border border-[#E5A93C]/25 text-[10px] font-bold tabular-nums">
+                        {formatQty(displayQty)} {unitLabel}
                       </span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground block tabular-nums mt-0.5">
-                      {t.presentValue} {getCurrentVal(trade)}
+                    <span className="text-[11px] text-muted-foreground font-mono mt-0.5 block">
+                      {trade.date}
                     </span>
                   </div>
 
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => onDelete(trade.id)}
-                    aria-label={t.pnl + ' delete'}
-                    className="text-muted-foreground/30 hover:text-[#EF4444] p-1 rounded-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                  {/* Right: PnL, Valuation, Delete Action */}
+                  <div className="flex min-w-0 max-w-full flex-shrink items-start gap-2.5 text-right">
+                    <div className="min-w-0 max-w-full">
+                      <div className={`flex items-center justify-end gap-1 text-xs sm:text-sm font-bold tabular-nums ${pnlColor}`}>
+                        {isProfit ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                        <span className="break-all [overflow-wrap:anywhere]">
+                          {isProfit ? '+' : ''}{formatCurrency(pnl, displayCurrency)}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground block tabular-nums mt-0.5">
+                        {t.presentValue} {getCurrentVal(trade)}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => onDelete(trade.id)}
+                          aria-label={`${t.deleteTrade}: ${formatQty(displayQty)} ${unitLabel}`}
+                      className="text-muted-foreground hover:text-[#EF4444] p-1.5 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all hover:bg-white/[0.06]"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }
