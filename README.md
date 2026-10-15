@@ -37,12 +37,9 @@ Web-app Available on Desktop
 And Mobile too
 <img width="1024" height="572" alt="photo-3" src="https://github.com/user-attachments/assets/ce7242cd-9dc6-4d17-bd24-b86fd221d18c" />
 
-Desktop View
+Ui View
 <img width="2501" height="1311" alt="2026-10-15 13 59 05 goldtrackerpro-ten vercel app 5c7c039e4a17" src="https://github.com/user-attachments/assets/097266f9-d3b8-4e34-b9ac-7128602f573d" />
-
-Mobile View
-<img width="565" height="572" alt="mobile ui" src="https://github.com/user-attachments/assets/7f396137-6481-49b1-bdf7-d7d7852b7b8b" />
-
+<img width="1024" height="572" alt="mobile ui" src="https://github.com/user-attachments/assets/50ec9afa-9594-45e1-a467-eff9e9428749" />
 ![Gold Advisor provider setup — no provider key configured](screenshots/ai-provider-review/01-empty-not-configured.png)
 
 ---
