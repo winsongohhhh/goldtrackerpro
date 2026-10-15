@@ -3,11 +3,11 @@ import React from 'react';
 interface GoldAppIconProps {
   size?: number;
   className?: string;
-  /** Kept for call-site compatibility; the mark is always flat and never glows. */
+  /** Kept for call-site compatibility; the shared icon artwork carries its own restrained highlight. */
   hasGlow?: boolean;
 }
 
-/** A flat gold G monogram for the app's dashboard and sign-in chrome. */
+/** Shared glass-gold G mark for the app's dashboard, sign-in chrome, and favicon. */
 export const GoldAppIcon: React.FC<GoldAppIconProps> = ({
   size = 40,
   className = '',

@@ -56,9 +56,9 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0D0F] text-foreground flex flex-col justify-between p-4 sm:p-6 selection:bg-[#E5A93C]/30 selection:text-amber-200">
+    <div className="auth-page h-[100svh] min-h-[100svh] overflow-y-auto overflow-x-hidden bg-[#0B0D0F] text-foreground flex flex-col p-4 sm:p-6 selection:bg-[#E5A93C]/30 selection:text-amber-200">
       {/* ── Top Bar ─────────────────────────────────────────── */}
-      <header className="flex items-center justify-between max-w-7xl mx-auto w-full pt-1">
+      <header className="flex shrink-0 items-center justify-between max-w-7xl mx-auto w-full pt-1">
         {/* Left: Brand Mark */}
         <div className="flex items-center gap-2.5">
           <GoldAppIcon size={32} />
@@ -80,24 +80,24 @@ export default function Auth() {
       </header>
 
       {/* ── Center Login Box ─────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center py-10 w-full max-w-md mx-auto">
+      <div className="auth-content my-auto flex-none flex flex-col items-center justify-center py-4 sm:py-6 w-full max-w-md mx-auto">
         {/* Floating Minimalist Squircle Emblem */}
-        <div className="mb-4">
+        <div className="auth-mark mb-3 sm:mb-4">
           <GoldAppIcon size={64} />
         </div>
 
         {/* Title & Subtitle */}
-        <div className="text-center mb-6 space-y-1.5">
+        <div className="auth-heading text-center mb-4 sm:mb-6 space-y-1.5">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
             Gold Tracker Pro
           </h1>
           <p className="text-xs text-muted-foreground">
-            {t.loginSubtitle}
+            {isLogin ? t.loginSubtitle : t.registrationSubtitle}
           </p>
         </div>
 
         {/* Apple Glass Container */}
-        <div className="w-full apple-card p-6 sm:p-8 space-y-4">
+        <div className="auth-card w-full apple-card p-5 sm:p-6 space-y-3 sm:space-y-4">
           {/* Working Google OAuth Button */}
           <button
             type="button"
@@ -128,7 +128,7 @@ export default function Auth() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleEmailAuth} className="space-y-3.5">
+          <form onSubmit={handleEmailAuth} className="auth-form space-y-3.5">
             {/* Email Field */}
             <div>
               <label htmlFor="auth-email" className="text-[11px] text-muted-foreground mb-1 block font-medium">
@@ -213,7 +213,7 @@ export default function Auth() {
       </div>
 
       {/* ── Page Footer ───────────────────────────────────────── */}
-      <footer className="max-w-7xl mx-auto w-full pt-4 border-t border-white/[0.04] text-[11px] text-muted-foreground flex items-center justify-center">
+      <footer className="auth-footer shrink-0 max-w-7xl mx-auto w-full pt-4 border-t border-white/[0.04] text-[11px] text-muted-foreground flex items-center justify-center">
         <span>© 2026 Gold Tracker Pro. {t.allRightsReserved}</span>
       </footer>
     </div>

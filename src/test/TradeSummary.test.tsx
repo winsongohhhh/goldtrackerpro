@@ -25,6 +25,8 @@ describe('TradeSummary', () => {
           convert={value => value}
           displayCurrency="USD"
           unit="g"
+          fxFreshness="live"
+          fxLastUpdated={new Date('2026-10-12T10:00:00.000Z')}
         />
       </I18nProvider>,
     );

@@ -1,12 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <rect x="1" y="1" width="30" height="30" rx="9" fill="#E5A93C" />
-  <text
-    x="16"
-    y="23"
-    text-anchor="middle"
-    font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-    font-size="21"
-    font-weight="750"
-    fill="#151719"
-  >G</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Gold Tracker Pro">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE89B" />
+      <stop offset="0.48" stop-color="#FFD05A" />
+      <stop offset="1" stop-color="#F0AC32" />
+    </linearGradient>
+    <radialGradient id="glass-bloom" cx="0" cy="0" r="1" gradientTransform="translate(135 42) rotate(72) scale(425 490)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFBE7" stop-opacity="0.48" />
+      <stop offset="0.45" stop-color="#FFF5D0" stop-opacity="0.14" />
+      <stop offset="1" stop-color="#FFF5D0" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="glass-sheen" x1="256" y1="0" x2="256" y2="194" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.26" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed, opaque color beneath iOS and browser icon masks. -->
+  <rect width="512" height="512" fill="url(#gold)" />
+  <rect width="512" height="512" fill="url(#glass-bloom)" />
+  <path d="M0 0H512V112C421 166 326 171 250 137C163 97 79 107 0 153V0Z" fill="url(#glass-sheen)" />
+  <path d="M7 7H505V505H7Z" fill="none" stroke="#FFF8DD" stroke-opacity="0.2" stroke-width="4" />
+
+  <!-- Bold, custom G with an open right edge and clear contrast at small sizes. -->
+  <path
+    d="M376 164C347 128 303 110 254 110C165 110 106 171 106 256C106 341 165 402 254 402C302 402 344 385 376 359V263H267"
+    fill="none"
+    stroke="#17191C"
+    stroke-width="62"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 </svg>

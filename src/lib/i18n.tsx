@@ -58,6 +58,10 @@ const translations = {
     notUpdatedYet: 'Not updated yet',
     quoteUpdated: 'Quote updated',
     quoteNotUpdatedYet: 'Quote not updated yet',
+    fxRatesLive: 'FX live',
+    fxRatesStale: 'FX stale',
+    fxRatesLastSuccessfulUpdate: 'Last successful update',
+    fxRatesFallback: 'Using estimated fallback rates',
     tradeAdding: 'Adding…',
     tradeAddedAnnouncement: 'Trade added.',
     tradeAddFailedAnnouncement: 'Trade could not be added.',
@@ -98,7 +102,36 @@ const translations = {
     presentValue: 'Value',
     costValue: 'Cost',
     goldAdvisorHelp: 'Gold Advisor',
+    aiProviderSettingsMenu: 'AI Provider',
+    aiProviderTitle: 'AI Provider',
+    aiProviderDescription: 'Connect your own AI provider key. Gold Advisor keeps its existing gold-market guidance and system rules.',
+    aiProviderSelectProvider: 'Provider',
+    aiProviderUnsupported: 'OpenAI-compatible — Not supported yet.',
+    aiProviderSelectModel: 'Model',
+    aiProviderModelId: 'Model ID',
+    aiProviderAPIKey: 'API key',
+    aiProviderKeyPlaceholder: 'Enter your provider API key',
+    aiProviderSecurityNote: 'Your key is sent only when you choose Test or Save. This UI does not store it in browser storage.',
+    aiProviderUsageNotice: 'Model usage is billed by your selected provider to your provider account.',
+    aiProviderConfigured: 'Provider configured',
+    aiProviderLoading: 'Loading provider settings…',
+    aiProviderNotConfigured: 'AI provider not configured',
+    aiProviderEnableAdvisor: 'Add a provider key to enable Advisor.',
+    aiProviderNoDefaultFallback: 'No default provider fallback is available.',
+    aiProviderTest: 'Test',
+    aiProviderSave: 'Save',
+    aiProviderChange: 'Change',
+    aiProviderRemove: 'Remove',
+    aiProviderTestSucceeded: 'Connection test succeeded.',
+    aiProviderTestFailed: 'Connection test failed. Check the provider, model, and key.',
+    aiProviderSaved: 'Provider settings saved.',
+    aiProviderSaveFailed: 'Could not save provider settings. Please try again.',
+    aiProviderRemoved: 'Provider key removed.',
+    aiProviderRemoveFailed: 'Could not remove provider settings. Please try again.',
+    aiProviderKeyRequired: 'Enter an API key to continue.',
+    aiProviderModelRequired: 'Enter a model ID to continue.',
     loginSubtitle: 'Sign in to sync your trades and real-time assets',
+    registrationSubtitle: 'Create an account to sync your trades and real-time assets',
     googleContinue: 'Continue with Google',
     appleContinue: 'Sign in with Apple',
     orEmailPassword: 'or use email & password',
@@ -176,6 +209,10 @@ const translations = {
     notUpdatedYet: '尚未更新',
     quoteUpdated: '报价更新',
     quoteNotUpdatedYet: '报价尚未更新',
+    fxRatesLive: '汇率实时',
+    fxRatesStale: '汇率已过期',
+    fxRatesLastSuccessfulUpdate: '最近成功更新',
+    fxRatesFallback: '正在使用估算备用汇率',
     tradeAdding: '正在添加…',
     tradeAddedAnnouncement: '交易已添加。',
     tradeAddFailedAnnouncement: '无法添加交易。',
@@ -216,7 +253,36 @@ const translations = {
     presentValue: '现值',
     costValue: '成本',
     goldAdvisorHelp: '黄金投顾助手',
+    aiProviderSettingsMenu: 'AI 服务商',
+    aiProviderTitle: 'AI 服务商',
+    aiProviderDescription: '连接您自己的 AI 服务商密钥。黄金顾问仍会遵循现有的黄金市场指导和系统规则。',
+    aiProviderSelectProvider: '服务商',
+    aiProviderUnsupported: 'OpenAI 兼容自定义端点 — Not supported yet.',
+    aiProviderSelectModel: '模型',
+    aiProviderModelId: '模型 ID',
+    aiProviderAPIKey: 'API 密钥',
+    aiProviderKeyPlaceholder: '输入服务商 API 密钥',
+    aiProviderSecurityNote: '仅当您选择测试或保存时才会发送密钥。此界面不会将密钥存储在浏览器存储中。',
+    aiProviderUsageNotice: '模型使用费用由您选择的服务商向您的服务商账户收取。',
+    aiProviderConfigured: '服务商已配置',
+    aiProviderLoading: '正在加载服务商设置…',
+    aiProviderNotConfigured: '尚未配置 AI 服务商',
+    aiProviderEnableAdvisor: '添加服务商密钥以启用黄金顾问。',
+    aiProviderNoDefaultFallback: '没有可用的默认服务商备用密钥。',
+    aiProviderTest: '测试',
+    aiProviderSave: '保存',
+    aiProviderChange: '更改',
+    aiProviderRemove: '移除',
+    aiProviderTestSucceeded: '连接测试成功。',
+    aiProviderTestFailed: '连接测试失败，请检查服务商、模型和密钥。',
+    aiProviderSaved: '服务商设置已保存。',
+    aiProviderSaveFailed: '无法保存服务商设置，请重试。',
+    aiProviderRemoved: '服务商密钥已移除。',
+    aiProviderRemoveFailed: '无法移除服务商设置，请重试。',
+    aiProviderKeyRequired: '请输入 API 密钥以继续。',
+    aiProviderModelRequired: '请输入模型 ID 以继续。',
     loginSubtitle: '登录以同步您的交易记录与实时资产',
+    registrationSubtitle: '注册账户以同步您的交易记录与实时资产',
     googleContinue: '使用 Google 账号继续',
     appleContinue: '使用 Apple 账号登录',
     orEmailPassword: '或使用邮箱密码',
@@ -251,10 +317,16 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | null>(null);
 
+function getInitialLanguage(): Language {
+  const savedLanguage = localStorage.getItem('gold-lang');
+  if (savedLanguage === 'en' || savedLanguage === 'cn') return savedLanguage;
+
+  const browserLanguage = typeof navigator === 'undefined' ? '' : navigator.language;
+  return /^zh(?:-|$)/i.test(browserLanguage) ? 'cn' : 'en';
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Language>(() => {
-    return (localStorage.getItem('gold-lang') as Language) || 'cn';
-  });
+  const [lang, setLang] = useState<Language>(getInitialLanguage);
 
   const handleSetLang = (l: Language) => {
     setLang(l);

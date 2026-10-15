@@ -7,8 +7,9 @@ import { useExchangeRates } from '@/hooks/use-exchange-rates';
 import { useTrades } from '@/hooks/use-trades';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/hooks/use-auth';
-import { Globe, LogOut, Settings } from 'lucide-react';
+import { Globe, LogOut, Settings, Sparkles } from 'lucide-react';
 import { GoldAdvisorChat } from '@/components/GoldAdvisorChat';
+import { AIProviderSettings } from '@/components/AIProviderSettings';
 import { AddTradeForm } from '@/components/AddTradeForm';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,13 +29,15 @@ const CURRENCY_OPTIONS: { value: Currency; label: string }[] = [
 const Index = () => {
   const { prices, currentPrice, loading, lastUpdated, freshness, refetch, timeRange, setTimeRange } = useGoldPrice();
   const { trades, addTrade, deleteTrade } = useTrades();
-  const { convert } = useExchangeRates();
+  const { convert, freshness: fxFreshness, lastUpdated: fxLastUpdated } = useExchangeRates();
   const { t, lang, setLang } = useI18n();
   const { signOut } = useAuth();
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
   const [unit, setUnit] = useState<WeightUnit>('g');
 
   const [chatOpen, setChatOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [providerSettingsOpen, setProviderSettingsOpen] = useState(false);
 
   const [scrollY, setScrollY] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -63,9 +66,9 @@ const Index = () => {
     </Button>
   );
 
-  const UnitToggle = () => (
+  const UnitToggle = ({ settings = false }: { settings?: boolean }) => (
     <div
-      className="flex items-center bg-white/[0.06] border border-white/[0.08] rounded-full p-0.5"
+      className={`flex items-center ${settings ? 'w-[160px] max-w-full' : ''} bg-white/[0.06] border border-white/[0.08] rounded-full p-0.5`}
       role="group"
       aria-label={t.unit}
     >
@@ -74,7 +77,7 @@ const Index = () => {
           key={u}
           onClick={() => setUnit(u)}
           aria-pressed={unit === u}
-          className={`min-h-10 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
+          className={`min-h-10 ${settings ? 'min-w-0 flex-1 px-1.5 text-[10px]' : 'px-2.5 text-[11px]'} py-1 rounded-full font-semibold whitespace-nowrap transition-all ${
             unit === u
               ? 'apple-btn-primary text-black shadow-sm'
               : 'text-muted-foreground hover:text-white'
@@ -86,10 +89,10 @@ const Index = () => {
     </div>
   );
 
-  const CurrencySelect = ({ fullWidth = false }: { fullWidth?: boolean }) => (
+  const CurrencySelect = ({ fullWidth = false, settings = false }: { fullWidth?: boolean; settings?: boolean }) => (
     <Select value={displayCurrency} onValueChange={(v) => setDisplayCurrency(v as Currency)}>
       <SelectTrigger
-        className={`${fullWidth ? 'w-full h-11' : 'w-auto min-w-[4.5rem] h-10'} bg-white/[0.06] border border-white/[0.08] text-xs text-white px-2.5 gap-1.5 rounded-full focus:ring-0`}
+        className={`${settings ? 'w-[160px] max-w-full h-11' : fullWidth ? 'w-full h-11' : 'w-auto min-w-[4.5rem] h-10'} bg-white/[0.06] border border-white/[0.08] text-xs text-white px-2.5 gap-1.5 rounded-full focus:ring-0`}
       >
         <SelectValue />
       </SelectTrigger>
@@ -144,39 +147,50 @@ const Index = () => {
             </div>
 
             {/* Mobile Sheet Trigger */}
-            <div className="sm:hidden flex items-center">
-              <Sheet>
+            <div className="flex items-center">
+              <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
                 <SheetTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="text-muted-foreground hover:text-white h-11 w-11 rounded-full bg-white/[0.06] border border-white/[0.08]"
-                    aria-label="Settings"
+                    aria-label={lang === 'cn' ? '设置' : 'Settings'}
                   >
                     <Settings className="w-4 h-4" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent
                   side="right"
-                  className="w-[280px] bg-[#1C1C1E] border-l border-white/[0.08] p-0"
+                  className="w-[min(200px,calc(100vw-2rem))] bg-[#1C1C1E] border-l border-white/[0.08] p-0"
                 >
-                  <SheetHeader className="px-5 pt-6 pb-4 border-b border-white/[0.06]">
+                  <SheetHeader className="px-[19px] pt-6 pb-4 border-b border-white/[0.06]">
                     <SheetTitle className="text-sm font-semibold text-white text-left">
                       {lang === 'cn' ? '设置' : 'Settings'}
                     </SheetTitle>
                   </SheetHeader>
-                  <div className="px-5 py-5 space-y-5">
+                  <div className="px-[19px] py-5 space-y-5">
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setSettingsOpen(false);
+                        setProviderSettingsOpen(true);
+                      }}
+                      className="w-full justify-start gap-2 px-0 text-sm text-white hover:bg-transparent hover:text-[#F0B94C]"
+                    >
+                      <Sparkles className="h-4 w-4 text-[#E5A93C]" />
+                      {t.aiProviderSettingsMenu}
+                    </Button>
                     <div className="space-y-2">
                       <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-widest">
                         {lang === 'cn' ? '显示货币' : 'Display Currency'}
                       </p>
-                      <CurrencySelect fullWidth />
+                      <CurrencySelect settings />
                     </div>
                     <div className="space-y-2">
                       <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-widest">
                         {lang === 'cn' ? '计量单位' : 'Weight Unit'}
                       </p>
-                      <UnitToggle />
+                      <UnitToggle settings />
                     </div>
                     <div className="space-y-2">
                       <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-widest">
@@ -220,6 +234,8 @@ const Index = () => {
               convert={convert}
               displayCurrency={displayCurrency}
               unit={unit}
+              fxFreshness={fxFreshness}
+              fxLastUpdated={fxLastUpdated}
             />
           </div>
 
@@ -270,6 +286,7 @@ const Index = () => {
           setChatOpen(isOpen);
         }}
       />
+      <AIProviderSettings open={providerSettingsOpen} onOpenChange={setProviderSettingsOpen} />
 
     </div>
   );

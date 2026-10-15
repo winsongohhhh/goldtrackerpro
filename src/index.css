@@ -154,10 +154,16 @@
   animation: dashboard-card-arrive 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+.dashboard-card-title {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
 /* ── Transactions List Sleek iOS Scrollbar (Fix 6) ────────────────────────── */
 .transactions-container {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-gutter: stable;
 }
 
 .transactions-container::-webkit-scrollbar {
@@ -302,10 +308,22 @@ html.advisor-scroll-locked,
 body.advisor-scroll-locked {
   overflow: hidden !important;
   overscroll-behavior: none !important;
+  height: var(--advisor-locked-viewport-height, 100vh) !important;
+  max-height: var(--advisor-locked-viewport-height, 100vh) !important;
+}
+
+html.advisor-scroll-locked {
+  min-height: 0 !important;
 }
 
 body.advisor-scroll-locked {
   position: fixed !important;
+  min-height: 0 !important;
+}
+
+.advisor-scroll-backdrop {
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 #poda:hover > .glow,
@@ -352,6 +370,35 @@ body.advisor-scroll-locked {
     flex: none;
     overflow: visible;
   }
+
+  body.advisor-scroll-locked {
+    position: fixed !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  body.advisor-scroll-locked .dashboard-viewport {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  body.advisor-scroll-locked .dashboard-viewport > main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  body.advisor-scroll-locked .advisor-message-list {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y pinch-zoom;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 @media (max-width: 1023px) {
@@ -374,17 +421,22 @@ body.advisor-scroll-locked {
   }
   .dashboard-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: 280px 440px;
     align-content: start;
   }
-  .dashboard-slot-portfolio,
   .dashboard-slot-add-trade {
     min-height: 280px;
+  }
+  .dashboard-slot-portfolio {
+    min-height: 280px;
+  }
+  .dashboard-slot-portfolio > section {
+    height: 100%;
   }
   .dashboard-slot-market,
   .dashboard-slot-transactions {
     min-height: 440px;
   }
-  .dashboard-slot-portfolio > section,
   .dashboard-slot-add-trade > section,
   .dashboard-slot-market > section,
   .dashboard-slot-transactions > section {
@@ -393,6 +445,17 @@ body.advisor-scroll-locked {
   .trade-list-card {
     min-height: 0;
     max-height: none;
+  }
+  .trade-list-card .transactions-container {
+    flex: 1 1 0%;
+    height: auto;
+    max-height: none;
+    scroll-snap-type: y mandatory;
+  }
+  .trade-list-card .transaction-row {
+    height: 44px;
+    min-height: 44px;
+    scroll-snap-align: start;
   }
 }
 
@@ -414,5 +477,99 @@ body.advisor-scroll-locked {
     background: #1C1C1E !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+}
+
+.auth-page {
+  height: 100vh;
+  height: 100dvh;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-height: 700px) {
+  .auth-page {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .auth-content {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .auth-mark {
+    margin-bottom: 0.5rem;
+  }
+
+  .auth-heading {
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-card {
+    padding: 1rem 1.25rem;
+  }
+
+  .auth-card > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.75rem;
+  }
+
+  .auth-form > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.5rem;
+  }
+
+  .auth-footer {
+    padding-top: 0.5rem;
+  }
+}
+
+/* One-line transaction rows: compact primary values, hide only secondary details when space is tight. */
+.trade-list-card {
+  container-type: inline-size;
+  container-name: trade-card;
+}
+
+.transaction-current-value {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@container trade-card (min-width: 400px) {
+  .transaction-current-value {
+    display: inline-flex;
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@container trade-card (max-width: 360px) {
+  .transaction-date {
+    font-size: 10px;
+  }
+
+  .transaction-primary {
+    gap: 0.25rem;
+  }
+
+  .transaction-result {
+    gap: 0.125rem;
+  }
+
+  .transaction-pnl svg {
+    display: none;
   }
 }

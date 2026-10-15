@@ -1,14 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import {
+  authenticateUser,
+  buildProviderRequest,
+  createAdminClient,
+  decryptApiKey,
+  validateProviderConfig,
+  type ChatMessage,
+  type ProviderId,
+} from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Cache-Control": "no-store",
 };
 
 const OZ_TO_GRAM = 31.1035;
-const MODEL = "gemini-3-flash-preview";
 
 function buildSystemPrompt(
   lang: string,
@@ -92,32 +100,17 @@ Important rules:
 
 async function fetchSearchResults(query: string): Promise<string> {
   try {
-    const url =
-      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-
-    const resp = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; GoldAdvisor/1.0)",
-      },
+    const response = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; GoldAdvisor/1.0)" },
+      signal: AbortSignal.timeout(12_000),
     });
+    if (!response.ok) return "";
 
-    if (!resp.ok) {
-      console.error("Search HTTP error:", resp.status);
-      return "";
-    }
-
-    const html = await resp.text();
-
+    const html = await response.text();
     const snippets: string[] = [];
-    const resultRegex =
-      /<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
-
-    let match;
-
-    while (
-      (match = resultRegex.exec(html)) !== null &&
-      snippets.length < 6
-    ) {
+    const resultRegex = /<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
+    let match: RegExpExecArray | null;
+    while ((match = resultRegex.exec(html)) !== null && snippets.length < 6) {
       const text = match[1]
         .replace(/<[^>]+>/g, "")
         .replace(/&amp;/g, "&")
@@ -126,321 +119,180 @@ async function fetchSearchResults(query: string): Promise<string> {
         .replace(/&quot;/g, '"')
         .replace(/&#x27;/g, "'")
         .trim();
-
-      if (text.length > 20) {
-        snippets.push(text);
-      }
+      if (text.length > 20) snippets.push(text);
     }
-
-    const titleRegex =
-      /<a class="result__a"[^>]*>([\s\S]*?)<\/a>/gi;
 
     const titles: string[] = [];
-
-    while (
-      (match = titleRegex.exec(html)) !== null &&
-      titles.length < 6
-    ) {
-      const text = match[1]
-        .replace(/<[^>]+>/g, "")
-        .trim();
-
-      if (text.length > 5) {
-        titles.push(text);
-      }
+    const titleRegex = /<a class="result__a"[^>]*>([\s\S]*?)<\/a>/gi;
+    while ((match = titleRegex.exec(html)) !== null && titles.length < 6) {
+      const text = match[1].replace(/<[^>]+>/g, "").trim();
+      if (text.length > 5) titles.push(text);
     }
-
-    if (snippets.length === 0) {
-      return "";
-    }
-
-    let result = "";
-
-    for (let i = 0; i < snippets.length; i++) {
-      result += `${i + 1}. ${titles[i] || ""}: ${snippets[i]}\n`;
-    }
-
-    return result;
-  } catch (e) {
-    console.error("Search error:", e);
+    return snippets.map((snippet, index) => `${index + 1}. ${titles[index] || ""}: ${snippet}`).join("\n");
+  } catch {
     return "";
   }
 }
 
 function extractSearchQuery(userMessage: string, lang: string): string {
-  const goldKeywords =
-    lang === "cn"
-      ? "黄金 金价 最新"
-      : "gold price latest";
-
+  const goldKeywords = lang === "cn" ? "黄金 金价 最新" : "gold price latest";
   return `${userMessage} ${goldKeywords} 2026`;
 }
 
-function convertMessages(
-  messages: Array<{ role: string; content: string }>,
-) {
-  const conversation = messages.filter(
-    (message) => message.role === "user" || message.role === "assistant",
-  );
-
-  // Gemini contents must start with a user turn. The frontend welcome
-  // assistant message is UI-only and must not lead the conversation.
-  const firstUserIndex = conversation.findIndex(
-    (message) => message.role === "user",
-  );
-
-  const turns =
-    firstUserIndex === -1 ? [] : conversation.slice(firstUserIndex);
-
-  return turns.map((message) => ({
-    role: message.role === "assistant" ? "model" : "user",
-    parts: [
-      {
-        text: message.content,
-      },
-    ],
-  }));
-}
-
-function createOpenAIChunk(content: string) {
-  return `data: ${
-    JSON.stringify({
-      choices: [
-        {
-          delta: {
-            content,
-          },
-        },
-      ],
-    })
-  }\n\n`;
-}
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders,
-    });
+function normalizeMessages(value: unknown): ChatMessage[] | null {
+  if (!Array.isArray(value) || value.length > 50) return null;
+  const messages: ChatMessage[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") return null;
+    const message = item as { role?: unknown; content?: unknown };
+    if (message.role !== "user" && message.role !== "assistant") continue;
+    if (typeof message.content !== "string" || message.content.length > 8000) return null;
+    messages.push({ role: message.role, content: message.content });
   }
+  const firstUser = messages.findIndex((message) => message.role === "user");
+  if (firstUser < 0) return null;
+  const turns = messages.slice(firstUser);
+  if (turns.reduce((total, message) => total + message.content.length, 0) > 30_000) return null;
+  return turns;
+}
+
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function toClientChunk(content: string) {
+  return `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`;
+}
+
+function extractDelta(provider: ProviderId, chunk: Record<string, unknown>): string {
+  if (provider === "openai") {
+    return chunk.type === "response.output_text.delta" && typeof chunk.delta === "string" ? chunk.delta : "";
+  }
+  if (provider === "anthropic") {
+    const delta = chunk.delta as { type?: string; text?: string } | undefined;
+    return chunk.type === "content_block_delta" && delta?.type === "text_delta" && typeof delta.text === "string" ? delta.text : "";
+  }
+  if (provider === "google") {
+    const candidates = chunk.candidates as Array<{ content?: { parts?: Array<{ text?: unknown }> } }> | undefined;
+    return candidates?.[0]?.content?.parts?.map((part) => typeof part.text === "string" ? part.text : "").join("") ?? "";
+  }
+  return "";
+}
+
+function makeStream(upstream: Response, provider: ProviderId): ReadableStream<Uint8Array> {
+  const reader = upstream.body!.getReader();
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let buffer = "";
+      const processLine = (line: string) => {
+        const normalized = line.endsWith("\r") ? line.slice(0, -1) : line;
+        if (!normalized.startsWith("data:")) return;
+        const data = normalized.slice(5).trim();
+        if (!data || data === "[DONE]") return;
+        try {
+          const parsed = JSON.parse(data) as Record<string, unknown>;
+          const text = extractDelta(provider, parsed);
+          if (text) controller.enqueue(encoder.encode(toClientChunk(text)));
+        } catch {
+          // Provider-specific SSE events that are not JSON text deltas are ignored.
+        }
+      };
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let newline = buffer.indexOf("\n");
+          while (newline !== -1) {
+            processLine(buffer.slice(0, newline));
+            buffer = buffer.slice(newline + 1);
+            newline = buffer.indexOf("\n");
+          }
+        }
+        if (buffer.trim()) processLine(buffer);
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      } catch {
+        controller.error(new Error("Provider stream failed"));
+      }
+    },
+    cancel() {
+      void reader.cancel();
+    },
+  });
+}
+
+serve(async (request) => {
+  if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (request.method !== "POST") return jsonResponse({ error: "METHOD_NOT_ALLOWED" }, 405);
+
+  const userId = await authenticateUser(request);
+  if (!userId) return jsonResponse({ error: "AUTH_REQUIRED" }, 401);
 
   try {
-    const {
-      messages = [],
-      lang = "en",
-      currentPrice,
-    } = await req.json();
+    const body = await request.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) return jsonResponse({ error: "INVALID_REQUEST" }, 400);
+    const messages = normalizeMessages(body.messages);
+    if (!messages) return jsonResponse({ error: "INVALID_MESSAGES" }, 400);
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const admin = createAdminClient();
+    const { data: record, error: configError } = await admin
+      .from("user_ai_provider_credentials")
+      .select("provider, model, ciphertext, iv, key_version")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (configError) return jsonResponse({ error: "PROVIDER_CONFIGURATION_UNAVAILABLE" }, 500);
+    if (!record) return jsonResponse({ error: "AI_PROVIDER_NOT_CONFIGURED" }, 428);
 
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not configured");
-    }
+    const config = validateProviderConfig({ provider: record.provider, model: record.model });
+    if (!config || record.key_version !== 1) return jsonResponse({ error: "PROVIDER_CONFIGURATION_INVALID" }, 500);
 
-    const lastUserMsg = [...messages]
-      .reverse()
-      .find((message: { role: string }) => message.role === "user");
+    const apiKey = await decryptApiKey(record.ciphertext, record.iv, userId, config.provider);
+    const lastUserMessage = [...messages].reverse().find((message) => message.role === "user");
+    const lang = body.lang === "cn" ? "cn" : "en";
+    const currentPrice = typeof body.currentPrice === "number" && Number.isFinite(body.currentPrice) && body.currentPrice > 0
+      ? body.currentPrice
+      : undefined;
+    const searchContext = lastUserMessage
+      ? await fetchSearchResults(extractSearchQuery(lastUserMessage.content, lang))
+      : "";
+    const systemPrompt = buildSystemPrompt(lang, currentPrice, searchContext || undefined);
+    const providerRequest = buildProviderRequest(config, apiKey, systemPrompt, messages, true);
 
-    let searchContext = "";
-
-    if (lastUserMsg) {
-      const query = extractSearchQuery(
-        lastUserMsg.content,
-        lang,
-      );
-
-      console.log("Proactive search:", query);
-
-      searchContext = await fetchSearchResults(query);
-
-      if (searchContext) {
-        console.log(
-          "Search results found, length:",
-          searchContext.length,
-        );
-      }
-    }
-
-    const systemPrompt = buildSystemPrompt(
-      lang,
-      currentPrice,
-      searchContext || undefined,
-    );
-
-    const geminiMessages = convertMessages(messages);
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse`,
-      {
+    let providerResponse: Response;
+    try {
+      const requestOptions = {
         method: "POST",
-        headers: {
-          "x-goog-api-key": GEMINI_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [
-              {
-                text: systemPrompt,
-              },
-            ],
-          },
-          contents: geminiMessages,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-
-      console.error(
-        "Gemini API error:",
-        response.status,
-        errorText,
-      );
-
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({
-            error: "请求过于频繁，请稍后再试。",
-          }),
-          {
-            status: 429,
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "application/json",
-            },
-          },
-        );
-      }
-
-      return new Response(
-        JSON.stringify({
-          error: "Gemini AI 服务暂时不可用",
-        }),
-        {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        },
-      );
+        headers: providerRequest.headers,
+        body: providerRequest.body,
+        signal: AbortSignal.timeout(90_000),
+        redirect: "error" as const,
+      };
+      providerResponse = await fetch(providerRequest.url, requestOptions);
+    } catch {
+      return jsonResponse({ error: "AI_PROVIDER_CONNECTION_FAILED" }, 502);
     }
-
-    if (!response.body) {
-      throw new Error("Gemini returned an empty response");
+    if (!providerResponse.ok) {
+      return jsonResponse({ error: providerResponse.status === 429 ? "AI_PROVIDER_RATE_LIMITED" : "AI_PROVIDER_REQUEST_FAILED" }, providerResponse.status === 429 ? 429 : 502);
     }
+    if (!providerResponse.body) return jsonResponse({ error: "AI_PROVIDER_EMPTY_RESPONSE" }, 502);
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        let buffer = "";
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-
-            if (done) {
-              break;
-            }
-
-            buffer += decoder.decode(value, {
-              stream: true,
-            });
-
-            let newlineIndex;
-
-            while (
-              (newlineIndex = buffer.indexOf("\n")) !== -1
-            ) {
-              let line = buffer.slice(0, newlineIndex);
-              buffer = buffer.slice(newlineIndex + 1);
-
-              if (line.endsWith("\r")) {
-                line = line.slice(0, -1);
-              }
-
-              if (!line.startsWith("data:")) {
-                continue;
-              }
-
-              const jsonText = line
-                .slice(5)
-                .trim();
-
-              if (!jsonText) {
-                continue;
-              }
-
-              try {
-                const chunk = JSON.parse(jsonText);
-
-                const text =
-                  chunk?.candidates?.[0]?.content?.parts
-                    ?.map((part: { text?: string }) => part.text || "")
-                    .join("") || "";
-
-                if (text) {
-                  controller.enqueue(
-                    new TextEncoder().encode(
-                      createOpenAIChunk(text),
-                    ),
-                  );
-                }
-              } catch (parseError) {
-                console.error(
-                  "Gemini chunk parse error:",
-                  parseError,
-                );
-              }
-            }
-          }
-
-          controller.enqueue(
-            new TextEncoder().encode(
-              "data: [DONE]\n\n",
-            ),
-          );
-
-          controller.close();
-        } catch (error) {
-          console.error(
-            "Gemini stream error:",
-            error,
-          );
-
-          controller.error(error);
-        }
-      },
-    });
-
-    return new Response(stream, {
+    return new Response(makeStream(providerResponse, config.provider), {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
+        "Cache-Control": "no-cache, no-store",
         Connection: "keep-alive",
       },
     });
-  } catch (e) {
-    console.error("chat error:", e);
-
-    return new Response(
-      JSON.stringify({
-        error:
-          e instanceof Error
-            ? e.message
-            : "Unknown error",
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      },
-    );
+  } catch {
+    // Never log API keys, request content, provider response bodies, or raw exceptions.
+    return jsonResponse({ error: "GOLD_ADVISOR_REQUEST_FAILED" }, 500);
   }
 });

@@ -48,8 +48,9 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
     setIsSubmitting(true);
     setSubmissionAnnouncement(t.tradeAdding);
     try {
+      const today = new Date();
       const result = await onAdd({
-        date: new Date().toISOString().split('T')[0],
+        date: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`,
         price: pricePerGram,
         quantity: quantityGrams,
         currency,
@@ -70,27 +71,28 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
   };
 
   return (
-    <section aria-label={t.addTradeTitle} className="apple-card dashboard-card p-5 sm:p-6 flex flex-col h-full">
-      <div className="flex items-center justify-between pb-1 shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#E5A93C]" aria-hidden="true" />
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {t.addTradeTitle}
-          </h2>
+    <section aria-label={t.addTradeTitle} className="apple-card dashboard-card p-4 sm:p-5 lg:p-4 flex flex-col h-full">
+      <div className="flex min-h-0 flex-1 flex-col lg:-translate-y-3">
+        <div className="flex items-center justify-between pb-1 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#E5A93C]" aria-hidden="true" />
+            <h2 className="dashboard-card-title text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t.addTradeTitle}
+            </h2>
+          </div>
+          {currentPrice > 0 && (
+            <button
+              type="button"
+              onClick={handleQuickMarketFill}
+              className="min-h-11 px-2 text-xs text-[#E5A93C] hover:text-[#F5D285] font-medium transition-colors"
+            >
+              {t.quickMarketBuy}
+            </button>
+          )}
         </div>
-        {currentPrice > 0 && (
-          <button
-            type="button"
-            onClick={handleQuickMarketFill}
-            className="min-h-11 px-2 text-xs text-[#E5A93C] hover:text-[#F5D285] font-medium transition-colors"
-          >
-            {t.quickMarketBuy}
-          </button>
-        )}
-      </div>
 
-      <form onSubmit={handleSubmit} className="w-full max-w-xl mx-auto flex-1 flex flex-col justify-center gap-4 py-2" aria-label={t.addTradeTitle}>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+        <form onSubmit={handleSubmit} className="w-full max-w-xl mx-auto flex-1 flex flex-col justify-center gap-4 py-2" aria-label={t.addTradeTitle}>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
           <div className="min-w-0">
             <label className="text-[11px] text-muted-foreground mb-1.5 block font-medium">
               {t.settlementCurrency}
@@ -157,21 +159,22 @@ export function AddTradeForm({ onAdd, currentPrice, convert, displayCurrency, un
               className="bg-black/30 border border-white/[0.08] rounded-xl h-10 text-xs font-mono text-white placeholder:text-muted-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
-        </div>
+          </div>
 
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          aria-busy={isSubmitting}
-          className="w-full apple-btn-primary h-10 rounded-xl transition-all flex items-center justify-center gap-1.5"
-        >
-          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 stroke-[2.5]" aria-hidden="true" />}
-          {isSubmitting ? t.tradeAdding : t.addRecordBtn}
-        </Button>
-        <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-          {submissionAnnouncement}
-        </p>
-      </form>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            className="w-full apple-btn-primary h-10 rounded-xl transition-all flex items-center justify-center gap-1.5"
+          >
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 stroke-[2.5]" aria-hidden="true" />}
+            {isSubmitting ? t.tradeAdding : t.addRecordBtn}
+          </Button>
+          <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {submissionAnnouncement}
+          </p>
+        </form>
+      </div>
     </section>
   );
 }

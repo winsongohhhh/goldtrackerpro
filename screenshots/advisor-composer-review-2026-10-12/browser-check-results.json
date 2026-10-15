@@ -1,0 +1,75 @@
+{
+  "engine": "WebKit 26.0",
+  "mobile": {
+    "viewportBreakpoints": [
+      {
+        "width": 375,
+        "fontSize": "16px"
+      },
+      {
+        "width": 390,
+        "fontSize": "16px"
+      },
+      {
+        "width": 640,
+        "fontSize": "16px"
+      },
+      {
+        "width": 768,
+        "fontSize": "16px"
+      }
+    ],
+    "beforeTyping": {
+      "top": 101.28125,
+      "bottom": 844,
+      "height": 742.71875,
+      "transform": "matrix(1, 0, 0, 1, 0, 0)"
+    },
+    "afterTyping": {
+      "top": 101.28125,
+      "bottom": 844,
+      "height": 742.71875,
+      "transform": "matrix(1, 0, 0, 1, 0, 0)"
+    },
+    "scrollStyle": {
+      "overflowY": "auto",
+      "touchAction": "pan-y pinch-zoom",
+      "overscrollBehaviorY": "contain",
+      "scrollbarWidth": "14px",
+      "scrollHeight": 2130,
+      "clientHeight": 577
+    },
+    "scrollTop": 300,
+    "backgroundScrollY": 0,
+    "keyboard": {
+      "state": {
+        "wrapperTop": "16px",
+        "wrapperHeight": "460px",
+        "dialogHeight": "404.8px",
+        "dialogBottom": 476,
+        "composerPadding": "shrink-0 px-4 py-3 border-t border-white/[0.08] bg-[#14161B]/95 pb-3",
+        "fontSize": "16px",
+        "focused": true
+      },
+      "bottomBeforeTyping": 476,
+      "bottomAfterTyping": 476,
+      "zoomState": {
+        "padding": "shrink-0 px-4 py-3 border-t border-white/[0.08] bg-[#14161B]/95 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]",
+        "wrapperHeight": "620px"
+      }
+    }
+  },
+  "desktop": {
+    "viewport": {
+      "width": 1440,
+      "height": 960
+    },
+    "fontSize": "16px",
+    "scrollTop": 45,
+    "backgroundScrollY": 0,
+    "pane": {
+      "height": 594
+    }
+  },
+  "pageErrors": []
+}

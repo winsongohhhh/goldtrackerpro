@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AddTradeForm } from '@/components/AddTradeForm';
 import { I18nProvider } from '@/lib/i18n';
@@ -40,6 +40,33 @@ describe('AddTradeForm', () => {
       quantity: 2,
       currency: 'USD',
     });
+  });
+
+  it('saves the Malaysia-local date for trades entered after local midnight', async () => {
+    const originalTimezone = process.env.TZ;
+    process.env.TZ = 'Asia/Kuala_Lumpur';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-02-02T18:30:00.000Z'));
+    const onAdd = vi.fn().mockResolvedValue({ success: true });
+
+    try {
+      render(
+        <I18nProvider>
+          <AddTradeForm {...baseProps} onAdd={onAdd} />
+        </I18nProvider>,
+      );
+      fireEvent.change(screen.getByLabelText('Buy Price (USD/g)'), { target: { value: '500' } });
+      fireEvent.change(screen.getByLabelText('Quantity (g)'), { target: { value: '2' } });
+      fireEvent.submit(screen.getByRole('form', { name: 'Add Trade' }));
+
+      await act(async () => { await Promise.resolve(); });
+      expect(onAdd).toHaveBeenCalledTimes(1);
+      expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ date: '2026-02-03' }));
+    } finally {
+      vi.useRealTimers();
+      if (originalTimezone === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTimezone;
+    }
   });
 
   it('preserves ounce conversion precision so a one-ounce purchase retains its full cost', async () => {

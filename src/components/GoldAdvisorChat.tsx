@@ -4,6 +4,9 @@ import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
+import { useAIProviderStatus } from '@/hooks/use-ai-provider-status';
+import { AI_PROVIDER_OPTIONS } from '@/lib/ai-providers';
+import { supabase } from '@/integrations/supabase/client';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -54,9 +57,11 @@ export function GoldAdvisorChat({
   onOpenChange,
 }: GoldAdvisorChatProps) {
   const { lang, t } = useI18n();
+  const { status: aiProviderStatus, loading: aiProviderStatusLoading } = useAIProviderStatus();
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = externalOpen !== undefined;
   const isOpen = isControlled ? externalOpen : internalOpen;
+  const advisorEnabled = aiProviderStatus.configured && aiProviderStatus.provider !== null;
 
   const setOpenState = useCallback(
     (nextOpen: boolean) => {
@@ -141,9 +146,13 @@ export function GoldAdvisorChat({
     const scrollY = window.scrollY;
     const root = document.documentElement;
     const body = document.body;
+    const dashboardMain = document.querySelector<HTMLElement>('.dashboard-viewport > main');
     const previousStyles = {
       rootOverflow: root.style.overflow,
       rootOverscrollBehavior: root.style.overscrollBehavior,
+      rootLockedViewportHeight: root.style.getPropertyValue('--advisor-locked-viewport-height'),
+      rootLockedViewportHeightPriority: root.style.getPropertyPriority('--advisor-locked-viewport-height'),
+      rootHadLockedViewportHeight: Array.from(root.style).includes('--advisor-locked-viewport-height'),
       bodyOverflow: body.style.overflow,
       bodyOverscrollBehavior: body.style.overscrollBehavior,
       bodyPosition: body.style.position,
@@ -151,6 +160,8 @@ export function GoldAdvisorChat({
       bodyLeft: body.style.left,
       bodyRight: body.style.right,
       bodyWidth: body.style.width,
+      dashboardMainOverflowY: dashboardMain?.style.overflowY ?? '',
+      dashboardMainOverscrollBehaviorY: dashboardMain?.style.overscrollBehaviorY ?? '',
       rootHadLockClass: root.classList.contains('advisor-scroll-locked'),
       bodyHadLockClass: body.classList.contains('advisor-scroll-locked'),
     };
@@ -167,9 +178,82 @@ export function GoldAdvisorChat({
     body.style.right = '0';
     body.style.width = '100%';
 
+    const updateLockedViewportHeight = () => {
+      const visibleHeight = window.visualViewport?.height ?? window.innerHeight;
+      root.style.setProperty('--advisor-locked-viewport-height', `${visibleHeight}px`);
+    };
+    updateLockedViewportHeight();
+    window.addEventListener('resize', updateLockedViewportHeight);
+    window.visualViewport?.addEventListener('resize', updateLockedViewportHeight);
+
+    if (dashboardMain) {
+      dashboardMain.style.overflowY = 'hidden';
+      dashboardMain.style.overscrollBehaviorY = 'none';
+    }
+
+    const touchY = new Map<number, number>();
+    const rememberTouches = (event: TouchEvent) => {
+      Array.from(event.changedTouches).forEach((touch) => touchY.set(touch.identifier, touch.clientY));
+    };
+    const preventBackgroundTouchScroll = (event: TouchEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const pane = target?.closest<HTMLElement>('.advisor-message-list') ?? null;
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+
+      const previousY = touchY.get(touch.identifier) ?? touch.clientY;
+      const deltaY = touch.clientY - previousY;
+      touchY.set(touch.identifier, touch.clientY);
+      if (!pane) {
+        if (target?.closest('input, textarea, [contenteditable="true"]')) return;
+        event.preventDefault();
+        return;
+      }
+      if (event.touches.length > 1) return;
+
+      const maxScroll = pane.scrollHeight - pane.clientHeight;
+      const atTop = pane.scrollTop <= 0;
+      const atBottom = pane.scrollTop >= maxScroll - 1;
+      if (maxScroll <= 1 || (atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
+        event.preventDefault();
+      }
+    };
+    const preventBackgroundWheelScroll = (event: WheelEvent) => {
+      const pane = event.target instanceof Element
+        ? event.target.closest<HTMLElement>('.advisor-message-list')
+        : null;
+      if (!pane) event.preventDefault();
+    };
+    const clearTouches = (event: TouchEvent) => {
+      Array.from(event.changedTouches).forEach((touch) => touchY.delete(touch.identifier));
+    };
+
+    document.addEventListener('touchstart', rememberTouches, { capture: true, passive: true });
+    document.addEventListener('touchmove', preventBackgroundTouchScroll, { capture: true, passive: false });
+    document.addEventListener('touchend', clearTouches, { capture: true, passive: true });
+    document.addEventListener('touchcancel', clearTouches, { capture: true, passive: true });
+    document.addEventListener('wheel', preventBackgroundWheelScroll, { capture: true, passive: false });
+
     return () => {
+      window.removeEventListener('resize', updateLockedViewportHeight);
+      window.visualViewport?.removeEventListener('resize', updateLockedViewportHeight);
+      document.removeEventListener('touchstart', rememberTouches, true);
+      document.removeEventListener('touchmove', preventBackgroundTouchScroll, true);
+      document.removeEventListener('touchend', clearTouches, true);
+      document.removeEventListener('touchcancel', clearTouches, true);
+      document.removeEventListener('wheel', preventBackgroundWheelScroll, true);
+
       root.style.overflow = previousStyles.rootOverflow;
       root.style.overscrollBehavior = previousStyles.rootOverscrollBehavior;
+      if (previousStyles.rootHadLockedViewportHeight) {
+        root.style.setProperty(
+          '--advisor-locked-viewport-height',
+          previousStyles.rootLockedViewportHeight,
+          previousStyles.rootLockedViewportHeightPriority
+        );
+      } else {
+        root.style.removeProperty('--advisor-locked-viewport-height');
+      }
       body.style.overflow = previousStyles.bodyOverflow;
       body.style.overscrollBehavior = previousStyles.bodyOverscrollBehavior;
       body.style.position = previousStyles.bodyPosition;
@@ -177,6 +261,10 @@ export function GoldAdvisorChat({
       body.style.left = previousStyles.bodyLeft;
       body.style.right = previousStyles.bodyRight;
       body.style.width = previousStyles.bodyWidth;
+      if (dashboardMain) {
+        dashboardMain.style.overflowY = previousStyles.dashboardMainOverflowY;
+        dashboardMain.style.overscrollBehaviorY = previousStyles.dashboardMainOverscrollBehaviorY;
+      }
       if (!previousStyles.rootHadLockClass) root.classList.remove('advisor-scroll-locked');
       if (!previousStyles.bodyHadLockClass) body.classList.remove('advisor-scroll-locked');
       if (scrollY > 0) window.scrollTo(0, scrollY);
@@ -431,7 +519,7 @@ export function GoldAdvisorChat({
 
   const send = useCallback(async () => {
     const text = input.trim();
-    if (!text || isLoading) return;
+    if (!text || isLoading || !advisorEnabled) return;
 
     const userMsg: Msg = { role: 'user', content: text };
     const newMessages = [...messages, userMsg];
@@ -444,11 +532,16 @@ export function GoldAdvisorChat({
     let assistantSoFar = '';
 
     try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (sessionError || !accessToken) throw new Error('Authentication required');
+
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? '',
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ messages: newMessages, lang, currentPrice }),
       });
@@ -524,9 +617,14 @@ export function GoldAdvisorChat({
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, lang, t, currentPrice]);
+  }, [input, isLoading, messages, lang, t, currentPrice, advisorEnabled]);
 
   const sheetHeight = Math.min(760, Math.max(240, viewportMetrics.height * 0.88));
+  const activeProviderLabel = advisorEnabled && aiProviderStatus.provider
+    ? `${AI_PROVIDER_OPTIONS[aiProviderStatus.provider].label} · ${aiProviderStatus.model}`
+    : aiProviderStatusLoading
+      ? t.aiProviderLoading
+      : t.aiProviderNotConfigured;
 
   return (
     <>
@@ -565,7 +663,7 @@ export function GoldAdvisorChat({
           <div
             onClick={handleCloseClick}
             aria-hidden="true"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+            className="advisor-scroll-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
           />
 
           {/* Interactive Modal Sheet Container */}
@@ -607,14 +705,21 @@ export function GoldAdvisorChat({
                   <div className="text-sm font-semibold text-white tracking-tight">
                     {t.goldAdvisorHelp}
                   </div>
-                  <div className={`text-[10px] ${connectionStatus === 'connected' ? 'text-emerald-300' : connectionStatus === 'disconnected' ? 'text-amber-200' : 'text-muted-foreground'}`}>
-                    {isLoading
-                      ? t.chatConnecting
-                      : connectionStatus === 'connected'
-                        ? t.chatConnected
-                        : connectionStatus === 'disconnected'
-                          ? t.chatDisconnected
-                          : t.chatReady}
+                  <div className="max-w-[210px] truncate text-[10px] text-white/55" title={activeProviderLabel}>
+                    {activeProviderLabel}
+                  </div>
+                  <div className={`text-[10px] ${!aiProviderStatusLoading && !advisorEnabled ? 'text-amber-200' : connectionStatus === 'connected' ? 'text-emerald-300' : connectionStatus === 'disconnected' ? 'text-amber-200' : 'text-muted-foreground'}`}>
+                    {aiProviderStatusLoading
+                      ? t.aiProviderLoading
+                      : !advisorEnabled
+                        ? t.aiProviderNoDefaultFallback
+                        : isLoading
+                          ? t.chatConnecting
+                          : connectionStatus === 'connected'
+                            ? t.chatConnected
+                            : connectionStatus === 'disconnected'
+                              ? t.chatDisconnected
+                              : t.chatReady}
                   </div>
                 </div>
               </div>
@@ -721,12 +826,14 @@ export function GoldAdvisorChat({
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
                     placeholder={
-                      lang === 'cn'
+                      !aiProviderStatusLoading && !advisorEnabled
+                        ? t.aiProviderEnableAdvisor
+                        : lang === 'cn'
                         ? '咨询黄金行情走势、买卖建议...'
                         : 'Ask about gold market, outlook, or allocation...'
                     }
                     className="min-w-0 flex-1 text-ellipsis bg-transparent text-base text-white placeholder:text-muted-foreground outline-none py-1.5"
-                    disabled={isLoading}
+                    disabled={isLoading || aiProviderStatusLoading || !advisorEnabled}
                   />
                   <Button
                     variant="ghost"
@@ -734,7 +841,7 @@ export function GoldAdvisorChat({
                     aria-label={t.sendMessage}
                     className="h-11 w-11 bg-[#E5A93C] hover:bg-[#F5D285] text-black rounded-full flex items-center justify-center transition-all disabled:opacity-30 disabled:bg-white/10 disabled:text-white/40"
                     onClick={send}
-                    disabled={isLoading || !input.trim()}
+                    disabled={isLoading || aiProviderStatusLoading || !advisorEnabled || !input.trim()}
                   >
                     <Send className="w-4 h-4" />
                   </Button>

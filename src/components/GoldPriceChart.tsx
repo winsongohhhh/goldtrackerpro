@@ -158,12 +158,12 @@ export function GoldPriceChart({
   return (
     <section
       aria-label={t.market}
-      className="apple-card dashboard-card p-5 sm:p-6 space-y-4 flex flex-col h-full min-h-[440px] max-h-[440px] justify-between lg:min-h-0 lg:max-h-none"
+      className="apple-card dashboard-card p-4 sm:p-5 lg:p-4 space-y-4 flex flex-col h-full min-h-[440px] max-h-[440px] justify-between lg:min-h-0 lg:max-h-none"
     >
       {/* ── Market Header Bar ───────────────────────────────── */}
-      <div className="flex flex-col items-start justify-between gap-3">
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:flex-nowrap sm:items-center sm:gap-4">
         {/* Left: Section Label & Spot Price */}
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             <span
               aria-hidden="true"
@@ -175,9 +175,9 @@ export function GoldPriceChart({
                     : 'bg-slate-400'
               }`}
             />
-            <span className="text-xs text-muted-foreground font-medium">
+            <h2 className="dashboard-card-title text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.marketCondition}
-            </span>
+            </h2>
             <span
               aria-label={`${t.marketCondition}: ${freshness === 'live' ? t.marketLive : freshness === 'stale' ? t.marketStale : t.marketUnavailable}`}
               className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
@@ -203,8 +203,8 @@ export function GoldPriceChart({
         </div>
 
         {/* Right: Time Range Selector, Refresh, & Timestamp */}
-        <div className="flex w-full flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex w-full flex-row items-center justify-between gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
+          <div className="flex flex-nowrap items-center gap-1.5">
             {/* Time range pills */}
             <div className="flex items-center bg-[#0E1115] border border-white/[0.04] rounded-lg p-0.5 gap-0.5">
               {TIME_RANGES.map(r => (
