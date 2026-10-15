@@ -1,4 +1,4 @@
-# Gold Tracker Pro
+<img width="603" height="1311" alt="IMG_5070" src="https://github.com/user-attachments/assets/d82a370a-e6c8-4285-9961-a10af1f9eff4" /># Gold Tracker Pro
 
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -28,9 +28,17 @@ Gold Tracker Pro is a responsive personal gold-portfolio tracker. Record gold pu
 
 ## Screenshots
 
-![Mobile add-trade form](screenshots/add-trade-iphone-viewport.png)
+<img width="1024" height="572" alt="photo-1" src="https://github.com/user-attachments/assets/3e383d32-4e80-4850-bcba-1901562c14df" />
 
-![Empty-transaction chart visual check — the quote and chart are mock data, not market data](screenshots/transactions-visual-check/empty-state-inset.png)
+<img width="1024" height="572" alt="photo-2" src="https://github.com/user-attachments/assets/c32e9a2a-e612-4209-9e4b-de12581f3b4d" />
+
+<img width="1024" height="572" alt="photo-3" src="https://github.com/user-attachments/assets/ce7242cd-9dc6-4d17-bd24-b86fd221d18c" />
+
+<img width="2501" height="1311" alt="2026-10-15 13 59 05 goldtrackerpro-ten vercel app 5c7c039e4a17" src="https://github.com/user-attachments/assets/097266f9-d3b8-4e34-b9ac-7128602f573d" />
+
+<img width="402" height="1551" alt="IMG_5069" src="https://github.com/user-attachments/assets/5bb76bba-fab0-4446-a3be-e8200f0933eb" />
+
+<img width="603" height="1311" alt="IMG_5070" src="https://github.com/user-attachments/assets/86b69dc3-95b0-4e79-ad60-ac661bc97002" />
 
 ![Gold Advisor provider setup — no provider key configured](screenshots/ai-provider-review/01-empty-not-configured.png)
 
