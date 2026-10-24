@@ -1,4 +1,4 @@
-##Gold Tracker Pro
+# Gold Tracker Pro
 
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -6,6 +6,8 @@
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres_%26_Auth-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![Vite](https://img.shields.io/badge/Vite-Build_Tool-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+**Live app:** [Try Gold Tracker Pro](https://goldtrackerpro-ten.vercel.app)
 
 Gold Tracker Pro is a responsive personal gold-portfolio tracker. Record gold purchases and review holdings, costs, estimated value, and portfolio performance. The app records trades; it does not execute them.
 
