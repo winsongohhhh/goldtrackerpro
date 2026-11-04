@@ -128,3 +128,9 @@ Issues and pull requests are welcome. For larger changes, open an issue to discu
 ## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+
+## Support Gold Tracker Pro
+
+If Gold Tracker Pro is useful to you, you can support its development on Ko-fi:
+
+[![Support Gold Tracker Pro on Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20SitStride-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/winsongohhhh)
