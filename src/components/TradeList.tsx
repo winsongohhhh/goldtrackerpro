@@ -126,7 +126,7 @@ export function TradeList({ trades, currentPrice, onDelete, convert, displayCurr
             {t.noTrades}
           </div>
         ) : (
-          <ul className="list-none lg:mt-auto lg:shrink-0">
+          <ul className="list-none lg:shrink-0">
             {trades.map((trade) => {
               const pnl = getPnL(trade);
               const isProfit = pnl >= 0;
